@@ -89,9 +89,9 @@ export default function InvestigatePage() {
     )[0];
 
   return (
-    <div className="flex h-[calc(100vh-64px-40px)] bg-white">
-      {/* Left: Timeline Panel */}
-      <div className="w-[420px] min-w-[360px] border-r border-gray-200 flex flex-col overflow-hidden">
+    <div className="flex flex-col md:flex-row h-auto md:h-[calc(100vh-90px)] bg-white">
+      {/* Timeline Panel — full width on mobile, sidebar on desktop */}
+      <div className="w-full md:w-[420px] md:min-w-[360px] border-b md:border-b-0 md:border-r border-gray-200 flex flex-col overflow-hidden max-h-[60vh] md:max-h-none">
         {/* Panel Header */}
         <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between mb-3">
@@ -288,8 +288,8 @@ export default function InvestigatePage() {
         </div>
       </div>
 
-      {/* Right: Google Map */}
-      <div className="flex-1 relative">
+      {/* Map — below on mobile, right on desktop */}
+      <div className="h-[40vh] md:h-auto md:flex-1 relative">
         <InvestigationMap
           sightings={sightings}
           timelineEvents={timelineEvents}

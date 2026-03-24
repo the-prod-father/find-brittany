@@ -175,25 +175,27 @@ export default function AdminReviewPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header + Admin Nav */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Case Review</h1>
-            <p className="text-gray-500 text-sm">
-              {pendingEvidence.length} evidence pending · {pendingTips.length} tips pending
-            </p>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Case Review</h1>
+              <p className="text-gray-500 text-xs sm:text-sm">
+                {pendingEvidence.length} evidence pending · {pendingTips.length} tips pending
+              </p>
+            </div>
+            <a href="/submit" className="px-3 py-2 bg-red-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-red-700">
+              Upload
+            </a>
           </div>
-          <div className="flex gap-2">
-            <a href="/walkthrough" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+          <div className="flex gap-2 overflow-x-auto">
+            <a href="/walkthrough" className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs whitespace-nowrap hover:bg-gray-50">
               Walkthrough
             </a>
-            <a href="/case-files-7347" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-              Evidence Gallery
+            <a href="/case-files-7347" className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs whitespace-nowrap hover:bg-gray-50">
+              Evidence
             </a>
-            <a href="/intel-ops-7347" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
-              Intel View
-            </a>
-            <a href="/submit" className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
-              Upload Evidence
+            <a href="/intel-ops-7347" className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs whitespace-nowrap hover:bg-gray-50">
+              Intel
             </a>
           </div>
         </div>
@@ -240,9 +242,9 @@ export default function AdminReviewPage() {
                   }`}
                 >
                   <div className="p-5">
-                    <div className="flex gap-6">
+                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                       {/* Media preview */}
-                      <div className="w-80 flex-shrink-0">
+                      <div className="w-full sm:w-80 flex-shrink-0">
                         {ev.file_url && ev.mime_type?.startsWith("video") ? (
                           <video
                             src={ev.file_url}
