@@ -186,10 +186,10 @@ export default function AdminReviewPage() {
             <a href="/walkthrough" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
               Walkthrough
             </a>
-            <a href="/evidence" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+            <a href="/case-files-7347" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
               Evidence Gallery
             </a>
-            <a href="/investigate" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+            <a href="/intel-ops-7347" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
               Intel View
             </a>
             <a href="/submit" className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
