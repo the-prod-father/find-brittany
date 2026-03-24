@@ -46,7 +46,7 @@ export default function HomePage() {
             href="/walkthrough"
             className="px-6 py-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 rounded-lg font-semibold text-lg transition-colors"
           >
-            View Investigation
+            View Investigation Map
           </a>
           <a
             href="tel:5165737347"
