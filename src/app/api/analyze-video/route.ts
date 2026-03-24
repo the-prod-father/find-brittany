@@ -17,7 +17,7 @@ async function analyzeFrame(
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 512,
+    max_tokens: 200,
     messages: [
       {
         role: "user",
@@ -28,11 +28,16 @@ async function analyzeFrame(
           },
           {
             type: "text",
-            text: `This is frame ${frameIndex + 1} of ${totalFrames} from a security camera video at timestamp ${timeLabel}. This is part of a missing persons investigation.
+            text: `Security camera frame ${frameIndex + 1}/${totalFrames} at ${timeLabel}. Missing persons investigation.
 
-Describe in 2-3 sentences: What do you see? Are there any people visible? What are they doing? Any vehicles? What direction is anyone moving? Note any changes from what might have been in previous frames. Include any text overlays (timestamps, camera names).
+Write 1-2 SHORT detective notes. Only note what matters:
+- People: count, clothing, direction of movement, behavior
+- Vehicles: type, color, direction
+- Overlay text: timestamp, camera name
+- Anything unusual or investigatively relevant
 
-Be specific and factual. If you see a person, describe their clothing, size, and movement.`,
+Skip describing empty scenes. If nothing notable, say "Clear - no activity."
+Be terse. Example: "1 person, dark jacket, moving south on sidewalk. No vehicles."`,
           },
         ],
       },
