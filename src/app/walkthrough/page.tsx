@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Sighting, TimelineEvent, Evidence } from "@/lib/types";
 import CaseChat from "@/components/CaseChat";
+import VideoReview from "@/components/VideoReview";
 
 const InvestigationMap = dynamic(
   () => import("@/components/InvestigationMap"),
@@ -280,32 +281,15 @@ export default function InvestigationView() {
               })}
             </div>
           ) : (
-            /* Video evidence list */
-            <div className="p-3 space-y-3">
+            /* Video evidence with full review */
+            <div className="p-3 space-y-4">
               {videos.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">No video evidence yet</p>
               ) : (
                 videos
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                   .map((v) => (
-                    <div key={v.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                      <video
-                        src={v.file_url!}
-                        controls
-                        preload="metadata"
-                        className="w-full"
-                        onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
-                      />
-                      <div className="p-2.5">
-                        <div className="text-xs font-medium text-gray-900">{v.title}</div>
-                        {v.location_description && (
-                          <div className="text-[10px] text-gray-500 mt-0.5">📍 {v.location_description}</div>
-                        )}
-                        {v.capture_date && (
-                          <div className="text-[10px] text-gray-500">🕐 {new Date(v.capture_date).toLocaleString()}</div>
-                        )}
-                      </div>
-                    </div>
+                    <VideoReview key={v.id} evidence={v} />
                   ))
               )}
             </div>
