@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 import exifr from "exifr";
+
+// Client-side Supabase for direct file uploads (bypasses Vercel 4.5MB limit)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type EvidenceType = "photo" | "video" | "document" | "screenshot" | "audio" | "social_media_link" | "other";
 
@@ -252,30 +259,53 @@ export default function SubmitTipPage() {
       if (!tipRes.ok) throw new Error("Failed to submit");
       const { id: tipId } = await tipRes.json();
 
-      // Upload files
+      // Upload files directly to Supabase storage (bypasses Vercel size limit)
       for (const fileUpload of files) {
-        const formData = new FormData();
-        formData.append("file", fileUpload.file);
-        formData.append("tip_id", tipId);
-        formData.append("evidence_type", fileUpload.type);
-        formData.append("title", fileUpload.file.name);
-        formData.append("description",
-          fileUpload.aiAnalysis?.notable_details ||
-          fileUpload.aiAnalysis?.people_description ||
-          ""
-        );
-        if (fileUpload.metadata?.captureDate) {
-          formData.append("capture_date", fileUpload.metadata.captureDate);
-        }
-        if (fileUpload.metadata?.latitude) {
-          formData.append("latitude", fileUpload.metadata.latitude.toString());
-        }
-        if (fileUpload.metadata?.longitude) {
-          formData.append("longitude", fileUpload.metadata.longitude.toString());
-        }
-        if (contactName) formData.append("submitted_by_name", contactName);
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const filename = `${timestamp}-${random}-${fileUpload.file.name}`;
 
-        await fetch("/api/evidence", { method: "POST", body: formData });
+        // Upload to Supabase storage directly from browser
+        const { error: uploadError } = await supabase.storage
+          .from("evidence")
+          .upload(filename, fileUpload.file, {
+            contentType: fileUpload.file.type,
+          });
+
+        if (uploadError) {
+          console.error("Upload error:", uploadError);
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from("evidence")
+          .getPublicUrl(filename);
+
+        // Create evidence record via API (metadata only, no file transfer)
+        await fetch("/api/evidence/record", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tip_id: tipId,
+            evidence_type: fileUpload.type,
+            title: fileUpload.file.name,
+            description:
+              fileUpload.aiAnalysis?.notable_details ||
+              fileUpload.aiAnalysis?.people_description ||
+              "",
+            file_path: `evidence/${filename}`,
+            file_url: urlData.publicUrl,
+            file_size_bytes: fileUpload.file.size,
+            mime_type: fileUpload.file.type,
+            original_filename: fileUpload.file.name,
+            capture_date: fileUpload.metadata?.captureDate || null,
+            latitude: fileUpload.metadata?.latitude || null,
+            longitude: fileUpload.metadata?.longitude || null,
+            submitted_by_name: contactName || null,
+            submitted_by_email: null,
+          }),
+        });
       }
 
       setSubmitted(true);
@@ -299,7 +329,7 @@ export default function SubmitTipPage() {
         <div className="flex justify-center gap-4">
           <button
             onClick={() => { setSubmitted(false); setFiles([]); setNote(""); setContactName(""); setContactPhone(""); setDetectedDate(""); setDetectedTime(""); setDetectedLat(""); setDetectedLng(""); setDetectedLocation(""); }}
-            className="px-6 py-3 bg-white border border-gray-200 rounded-lg hover:bg-[#2a2a40] transition-colors"
+            className="px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Submit More
           </button>
@@ -388,41 +418,42 @@ export default function SubmitTipPage() {
 
                   {/* EXIF data */}
                   {f.metadata && (f.metadata.captureDate || f.metadata.latitude) && (
-                    <div className="text-xs text-green-400 mb-2">
-                      EXIF: {f.metadata.captureDate && new Date(f.metadata.captureDate).toLocaleString()}
+                    <div className="text-xs text-gray-700 mb-2 bg-gray-100 rounded px-2 py-1">
+                      <span className="font-semibold">File metadata:</span>{" "}
+                      {f.metadata.captureDate && new Date(f.metadata.captureDate).toLocaleString()}
                       {f.metadata.latitude && ` · GPS: ${f.metadata.latitude.toFixed(4)}, ${f.metadata.longitude?.toFixed(4)}`}
                     </div>
                   )}
 
                   {/* AI analyzing */}
                   {f.analyzing && (
-                    <div className="flex items-center gap-2 text-xs text-blue-400">
-                      <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-400" />
+                    <div className="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 rounded px-3 py-2">
+                      <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600" />
                       AI is reading this file...
                     </div>
                   )}
 
                   {/* AI results */}
                   {f.aiAnalysis && (
-                    <div className="bg-blue-900/15 border border-blue-500/20 rounded p-3 text-xs space-y-1">
+                    <div className="bg-gray-100 border border-gray-200 rounded p-3 text-xs space-y-1">
                       {f.frameUrl && (
-                        <img src={f.frameUrl} alt="Frame" className="w-full rounded mb-2 opacity-80" />
+                        <img src={f.frameUrl} alt="Frame" className="w-full rounded mb-2" />
                       )}
-                      <div className="text-blue-400 font-semibold text-[10px] uppercase tracking-wider mb-1">AI Extracted</div>
+                      <div className="text-gray-900 font-semibold text-[10px] uppercase tracking-wider mb-1">AI Extracted</div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                        {f.aiAnalysis.date && <div className="text-gray-600">Date: <span className="text-white">{f.aiAnalysis.date}</span></div>}
-                        {f.aiAnalysis.time && <div className="text-gray-600">Time: <span className="text-white">{f.aiAnalysis.time}</span></div>}
-                        {f.aiAnalysis.camera_name && <div className="text-gray-600">Camera: <span className="text-white">{f.aiAnalysis.camera_name}</span></div>}
-                        {f.aiAnalysis.lighting && <div className="text-gray-600">Lighting: <span className="text-white">{f.aiAnalysis.lighting}</span></div>}
+                        {f.aiAnalysis.date && <div className="text-gray-600">Date: <span className="text-gray-900 font-medium">{f.aiAnalysis.date}</span></div>}
+                        {f.aiAnalysis.time && <div className="text-gray-600">Time: <span className="text-gray-900 font-medium">{f.aiAnalysis.time}</span></div>}
+                        {f.aiAnalysis.camera_name && <div className="text-gray-600">Camera: <span className="text-gray-900 font-medium">{f.aiAnalysis.camera_name}</span></div>}
+                        {f.aiAnalysis.lighting && <div className="text-gray-600">Lighting: <span className="text-gray-900 font-medium">{f.aiAnalysis.lighting}</span></div>}
                       </div>
                       {f.aiAnalysis.people_visible && f.aiAnalysis.people_description && (
-                        <div className="text-yellow-400 mt-1">People: {f.aiAnalysis.people_description}</div>
+                        <div className="text-gray-900 font-medium mt-1">People: {f.aiAnalysis.people_description}</div>
                       )}
                       {f.aiAnalysis.environment && (
                         <div className="text-gray-600 mt-1">Scene: {f.aiAnalysis.environment}</div>
                       )}
                       {f.aiAnalysis.notable_details && (
-                        <div className="text-red-400 font-medium mt-1">{f.aiAnalysis.notable_details}</div>
+                        <div className="text-gray-900 font-semibold mt-1">{f.aiAnalysis.notable_details}</div>
                       )}
                     </div>
                   )}
@@ -434,13 +465,13 @@ export default function SubmitTipPage() {
 
         {/* Auto-detected info bar */}
         {(detectedDate || detectedLat || detectedLocation) && (
-          <div className="bg-green-900/15 border border-green-500/20 rounded-lg p-4 text-sm">
-            <div className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">Auto-Detected from your files</div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+            <div className="text-gray-900 text-xs font-semibold uppercase tracking-wider mb-2">Auto-detected from your files</div>
             <div className="flex flex-wrap gap-4 text-xs">
-              {detectedDate && <div className="text-gray-700">Date: <span className="text-white font-medium">{detectedDate}</span></div>}
-              {detectedTime && <div className="text-gray-700">Time: <span className="text-white font-medium">{detectedTime}</span></div>}
-              {detectedLat && <div className="text-gray-700">GPS: <span className="text-white font-medium">{detectedLat}, {detectedLng}</span></div>}
-              {detectedLocation && <div className="text-gray-700">Location: <span className="text-white font-medium">{detectedLocation}</span></div>}
+              {detectedDate && <div className="text-gray-600">Date: <span className="text-gray-900 font-semibold">{detectedDate}</span></div>}
+              {detectedTime && <div className="text-gray-600">Time: <span className="text-gray-900 font-semibold">{detectedTime}</span></div>}
+              {detectedLat && <div className="text-gray-600">GPS: <span className="text-gray-900 font-semibold">{detectedLat}, {detectedLng}</span></div>}
+              {detectedLocation && <div className="text-gray-600">Location: <span className="text-gray-900 font-semibold">{detectedLocation}</span></div>}
             </div>
           </div>
         )}
