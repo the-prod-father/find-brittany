@@ -17,19 +17,19 @@ export default function HomePage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Hero Section */}
       <section className="text-center mb-12">
-        <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-600/40 rounded-full px-4 py-1.5 mb-6">
+        <div className="inline-flex items-center gap-2 bg-red-50 border border-red-200 rounded-full px-4 py-1.5 mb-6">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          <span className="text-red-400 text-sm font-semibold">
+          <span className="text-red-600 text-sm font-semibold">
             DAY {daysMissing} — ACTIVE INVESTIGATION
           </span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl font-bold mb-4">
+        <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-gray-900">
           Help Find{" "}
-          <span className="text-red-400">Brittany Kritis-Garip</span>
+          <span className="text-red-600">Brittany Kritis-Garip</span>
         </h1>
 
-        <p className="text-lg text-[#8888a0] max-w-2xl mx-auto mb-8">
+        <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-8">
           32-year-old Brittany has been missing since the evening of March 20,
           2026 from Oyster Bay, Long Island. If you have any information — no
           matter how small — please submit a tip or contact police immediately.
@@ -38,19 +38,19 @@ export default function HomePage() {
         <div className="flex flex-wrap justify-center gap-4">
           <a
             href="/submit"
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold text-lg transition-colors"
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-lg transition-colors"
           >
             Submit a Tip
           </a>
           <a
-            href="/map"
-            className="px-6 py-3 bg-[#1c1c2e] hover:bg-[#2a2a40] border border-[#2a2a40] rounded-lg font-semibold text-lg transition-colors"
+            href="/walkthrough"
+            className="px-6 py-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 rounded-lg font-semibold text-lg transition-colors"
           >
-            View Investigation Map
+            View Investigation
           </a>
           <a
             href="tel:5165737347"
-            className="px-6 py-3 bg-[#1c1c2e] hover:bg-[#2a2a40] border border-[#2a2a40] rounded-lg font-semibold text-lg transition-colors"
+            className="px-6 py-3 bg-white hover:bg-gray-50 border border-gray-300 text-gray-900 rounded-lg font-semibold text-lg transition-colors"
           >
             Call Police: 516-573-7347
           </a>
@@ -59,55 +59,55 @@ export default function HomePage() {
 
       {/* Subject Info Card */}
       <section className="grid md:grid-cols-2 gap-6 mb-12">
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-red-400 mb-4 border-b border-[#2a2a40] pb-2">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-red-600 mb-4 border-b border-gray-100 pb-2">
             Missing Person Details
           </h2>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Name</span>
+              <span className="text-gray-500">Name</span>
               <span className="font-medium">{info.subject.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Age</span>
+              <span className="text-gray-500">Age</span>
               <span>{info.subject.age} (DOB: {info.subject.dob})</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Height / Weight</span>
+              <span className="text-gray-500">Height / Weight</span>
               <span>{info.subject.height} / {info.subject.weight}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Hair / Eyes</span>
+              <span className="text-gray-500">Hair / Eyes</span>
               <span>{info.subject.hair} / {info.subject.eyes}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Last Wearing</span>
+              <span className="text-gray-500">Last Wearing</span>
               <span className="text-right max-w-[60%]">{info.subject.lastWearing}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-red-400 mb-4 border-b border-[#2a2a40] pb-2">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-red-600 mb-4 border-b border-gray-100 pb-2">
             Circumstances
           </h2>
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Date</span>
+              <span className="text-gray-500">Date</span>
               <span>March 20, 2026</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Last Seen</span>
+              <span className="text-gray-500">Last Seen</span>
               <span>8:14 PM</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-[#8888a0]">Location</span>
+              <span className="text-gray-500">Location</span>
               <span className="text-right max-w-[60%]">
                 {info.disappearance.lastSeenLocation}
               </span>
             </div>
             <div>
-              <span className="text-[#8888a0] block mb-1">Details</span>
+              <span className="text-gray-500 block mb-1">Details</span>
               <p className="text-sm leading-relaxed">
                 {info.disappearance.circumstances}
               </p>
@@ -148,11 +148,11 @@ export default function HomePage() {
           ].map((item) => (
             <div
               key={item.title}
-              className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-5"
+              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
             >
               <div className="text-2xl mb-3">{item.icon}</div>
               <h3 className="font-semibold mb-2">{item.title}</h3>
-              <p className="text-sm text-[#8888a0] leading-relaxed">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {item.description}
               </p>
             </div>
@@ -161,25 +161,25 @@ export default function HomePage() {
       </section>
 
       {/* Contact Section */}
-      <section className="bg-red-600/10 border border-red-600/30 rounded-xl p-8 text-center">
+      <section className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
         <h2 className="text-xl font-bold mb-4">
           Have Information? Contact Immediately
         </h2>
         <div className="flex flex-wrap justify-center gap-6">
           <div>
-            <div className="text-sm text-[#8888a0]">Nassau County PD Missing Persons</div>
+            <div className="text-sm text-gray-500">Nassau County PD Missing Persons</div>
             <a
               href="tel:5165737347"
-              className="text-xl font-bold text-red-400 hover:text-red-300"
+              className="text-xl font-bold text-red-600 hover:text-red-700"
             >
               {info.contacts.police.phone}
             </a>
           </div>
           <div>
-            <div className="text-sm text-[#8888a0]">Emergency</div>
+            <div className="text-sm text-gray-500">Emergency</div>
             <a
               href="tel:911"
-              className="text-xl font-bold text-red-400 hover:text-red-300"
+              className="text-xl font-bold text-red-600 hover:text-red-700"
             >
               911
             </a>
@@ -187,7 +187,7 @@ export default function HomePage() {
           <div>
             <a
               href="/submit"
-              className="inline-block mt-2 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+              className="inline-block mt-2 px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
             >
               Submit Tip Online
             </a>

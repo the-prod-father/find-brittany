@@ -20,13 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-        />
-      </head>
-      <body className="min-h-screen bg-[#0f0f1a] text-[#f0f0f5] antialiased">
+      <body className="min-h-screen bg-white text-gray-900 antialiased">
         {/* Alert Banner */}
         <div className="bg-red-600 text-white text-center py-2 px-4 text-sm font-semibold">
           ACTIVE MISSING PERSON — If you have information, call Nassau County PD:{" "}
@@ -40,15 +34,15 @@ export default function RootLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="border-b border-[#2a2a40] bg-[#161625]">
+        <nav className="border-b border-gray-200 bg-white sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                <a href="/" className="text-lg font-bold text-red-400">
+                <a href="/" className="text-lg font-bold text-red-600">
                   Find Brittany
                 </a>
-                <span className="text-xs text-[#8888a0] hidden sm:block">
+                <span className="text-xs text-gray-400 hidden sm:block">
                   Investigation Tracker
                 </span>
               </div>
@@ -56,31 +50,31 @@ export default function RootLayout({
               <div className="flex items-center gap-1 sm:gap-2">
                 <a
                   href="/"
-                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
+                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
                   Home
                 </a>
                 <a
                   href="/walkthrough"
-                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
+                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
                   Walkthrough
                 </a>
                 <a
                   href="/investigate"
-                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
+                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
                   Investigate
                 </a>
                 <a
                   href="/evidence"
-                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
+                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
                   Evidence
                 </a>
                 <a
                   href="/submit"
-                  className="px-3 py-2 text-sm font-semibold rounded-md bg-red-600 hover:bg-red-700 transition-colors"
+                  className="px-3 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
                 >
                   Submit Tip
                 </a>
@@ -92,10 +86,10 @@ export default function RootLayout({
         <main>{children}</main>
 
         {/* Footer */}
-        <footer className="border-t border-[#2a2a40] bg-[#161625] mt-auto py-8 px-4">
-          <div className="max-w-7xl mx-auto text-center text-sm text-[#8888a0]">
+        <footer className="border-t border-gray-200 bg-gray-50 mt-auto py-8 px-4">
+          <div className="max-w-7xl mx-auto text-center text-sm text-gray-500">
             <p className="mb-2">
-              <strong className="text-[#f0f0f5]">Brittany Kritis-Garip</strong>{" "}
+              <strong className="text-gray-900">Brittany Kritis-Garip</strong>{" "}
               — Missing since March 20, 2026 — Oyster Bay, Long Island, NY
             </p>
             <p className="mb-4">
@@ -103,14 +97,14 @@ export default function RootLayout({
               black pants, black jacket with fur collar
             </p>
             <div className="flex justify-center gap-6 mb-4">
-              <a href="tel:5165737347" className="text-red-400 hover:text-red-300">
+              <a href="tel:5165737347" className="text-red-600 hover:text-red-700 font-medium">
                 Nassau PD: 516-573-7347
               </a>
-              <a href="tel:911" className="text-red-400 hover:text-red-300">
+              <a href="tel:911" className="text-red-600 hover:text-red-700 font-medium">
                 Emergency: 911
               </a>
             </div>
-            <p className="text-xs text-[#555570]">
+            <p className="text-xs text-gray-400">
               Built with urgency by Why Not Us Labs — Helping bring Brittany home
             </p>
           </div>

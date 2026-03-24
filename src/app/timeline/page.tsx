@@ -115,14 +115,14 @@ export default function TimelinePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-[#f0f0f5] mb-2">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Investigation Timeline
           </h1>
-          <p className="text-lg text-[#8888a0]">
+          <p className="text-lg text-gray-500">
             Critical events in the search for Brittany Kritis-Garip
           </p>
         </div>
@@ -138,7 +138,7 @@ export default function TimelinePage() {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: config.color }}
               ></div>
-              <span className="text-[#d0d0dc]">{config.label}</span>
+              <span className="text-gray-700">{config.label}</span>
             </div>
           ))}
         </div>
@@ -169,10 +169,10 @@ export default function TimelinePage() {
                       <div className="mb-3">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-xs font-semibold text-[#8888a0] uppercase tracking-wider">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                               {config.label}
                             </p>
-                            <p className="text-sm font-bold text-[#f0f0f5] mt-1">
+                            <p className="text-sm font-bold text-gray-900 mt-1">
                               {event.title}
                             </p>
                           </div>
@@ -184,15 +184,15 @@ export default function TimelinePage() {
                       </div>
 
                       {/* Date and Time */}
-                      <div className="flex items-center gap-4 mb-3 pb-3 border-b border-[#2a2a40]">
-                        <p className="text-sm font-semibold text-[#d0d0dc]">
+                      <div className="flex items-center gap-4 mb-3 pb-3 border-b border-gray-200">
+                        <p className="text-sm font-semibold text-gray-700">
                           {event.date}
                         </p>
-                        <p className="text-sm text-[#a0a0b0]">{event.time}</p>
+                        <p className="text-sm text-gray-600">{event.time}</p>
                       </div>
 
                       {/* Description */}
-                      <p className="text-sm text-[#d0d0dc] mb-3 leading-relaxed">
+                      <p className="text-sm text-gray-700 mb-3 leading-relaxed">
                         {event.description}
                       </p>
 
@@ -200,16 +200,16 @@ export default function TimelinePage() {
                       <div className="space-y-2 text-xs">
                         {event.location && (
                           <div>
-                            <span className="text-[#8888a0]">Location: </span>
-                            <span className="text-[#a0a0b0]">
+                            <span className="text-gray-500">Location: </span>
+                            <span className="text-gray-600">
                               {event.location}
                             </span>
                           </div>
                         )}
                         {event.source && (
                           <div>
-                            <span className="text-[#8888a0]">Source: </span>
-                            <span className="text-[#a0a0b0]">
+                            <span className="text-gray-500">Source: </span>
+                            <span className="text-gray-600">
                               {event.source}
                             </span>
                           </div>
@@ -244,8 +244,8 @@ export default function TimelinePage() {
 
         {/* Bottom CTA */}
         <div className="mt-16 text-center">
-          <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-8 max-w-xl mx-auto">
-            <p className="text-[#8888a0] mb-4 text-sm">
+          <div className="bg-white border border-gray-200 rounded-lg p-8 max-w-xl mx-auto">
+            <p className="text-gray-500 mb-4 text-sm">
               Do you have information about Brittany's disappearance?
             </p>
             <a
@@ -254,14 +254,14 @@ export default function TimelinePage() {
             >
               Call Nassau County Police
             </a>
-            <p className="text-[#666675] text-sm">
+            <p className="text-gray-400 text-sm">
               516-573-7347 • Available 24/7
             </p>
           </div>
         </div>
 
         {/* Timeline Info */}
-        <div className="mt-12 text-center text-[#8888a0] text-sm max-w-2xl mx-auto">
+        <div className="mt-12 text-center text-gray-500 text-sm max-w-2xl mx-auto">
           <p>
             This timeline represents key events in the investigation of
             Brittany Kritis-Garip's disappearance. Information is updated as

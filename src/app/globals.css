@@ -1,48 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --red-alert: #e94560;
-  --dark-bg: #0f0f1a;
-  --dark-surface: #161625;
-  --dark-card: #1c1c2e;
-  --dark-border: #2a2a40;
-  --text-primary: #f0f0f5;
-  --text-secondary: #8888a0;
-  --blue-accent: #3b82f6;
-  --green-verified: #22c55e;
-  --yellow-pending: #eab308;
-  --orange-urgent: #f97316;
+  --red-alert: #dc2626;
+  --bg: #ffffff;
+  --surface: #f8f9fa;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --blue-accent: #2563eb;
+  --green-verified: #16a34a;
+  --yellow-pending: #ca8a04;
+  --orange-urgent: #ea580c;
 }
 
 body {
-  background: var(--dark-bg);
+  background: var(--bg);
   color: var(--text-primary);
-}
-
-/* Leaflet overrides for dark theme */
-.leaflet-container {
-  background: #0a0a14;
-}
-.leaflet-popup-content-wrapper {
-  background: var(--dark-card);
-  color: var(--text-primary);
-  border: 1px solid var(--dark-border);
-  border-radius: 8px;
-}
-.leaflet-popup-tip {
-  background: var(--dark-card);
-}
-
-/* Pulse animation for critical markers */
-@keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(2.5); opacity: 0; }
-}
-.marker-pulse::before {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  border: 2px solid var(--red-alert);
-  animation: pulse-ring 2s ease-out infinite;
 }

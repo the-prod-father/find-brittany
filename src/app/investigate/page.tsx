@@ -10,7 +10,7 @@ const InvestigationMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full bg-[#0f0f1a] flex items-center justify-center">
+      <div className="w-full h-full bg-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500" />
       </div>
     ),
@@ -89,14 +89,14 @@ export default function InvestigatePage() {
     )[0];
 
   return (
-    <div className="flex h-[calc(100vh-64px-40px)] bg-[#0f0f1a]">
+    <div className="flex h-[calc(100vh-64px-40px)] bg-white">
       {/* Left: Timeline Panel */}
-      <div className="w-[420px] min-w-[360px] border-r border-[#2a2a40] flex flex-col overflow-hidden">
+      <div className="w-[420px] min-w-[360px] border-r border-gray-200 flex flex-col overflow-hidden">
         {/* Panel Header */}
-        <div className="p-4 border-b border-[#2a2a40] bg-[#161625]">
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold">Investigation Timeline</h2>
-            <span className="text-xs text-[#8888a0]">
+            <span className="text-xs text-gray-500">
               {filteredEvents.length} events
             </span>
           </div>
@@ -116,7 +116,7 @@ export default function InvestigatePage() {
               <p className="text-sm font-semibold">
                 {latestSighting.location_description}
               </p>
-              <p className="text-xs text-[#8888a0]">
+              <p className="text-xs text-gray-500">
                 {new Date(latestSighting.sighting_date).toLocaleString()} —{" "}
                 {latestSighting.confidence}
               </p>
@@ -129,8 +129,8 @@ export default function InvestigatePage() {
               onClick={() => setFilterType("all")}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                 filterType === "all"
-                  ? "bg-white/10 text-white"
-                  : "text-[#8888a0] hover:text-white"
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-500 hover:text-gray-900"
               }`}
             >
               All
@@ -143,8 +143,8 @@ export default function InvestigatePage() {
                 }
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
                   filterType === type
-                    ? "bg-white/10 text-white"
-                    : "text-[#8888a0] hover:text-white"
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 <div
@@ -164,13 +164,13 @@ export default function InvestigatePage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
             </div>
           ) : filteredEvents.length === 0 ? (
-            <div className="text-center text-[#8888a0] py-12 text-sm">
+            <div className="text-center text-gray-500 py-12 text-sm">
               No events to display
             </div>
           ) : (
             <div className="relative">
               {/* Vertical timeline line */}
-              <div className="absolute left-6 top-0 bottom-0 w-px bg-[#2a2a40]" />
+              <div className="absolute left-6 top-0 bottom-0 w-px bg-gray-200" />
 
               {filteredEvents.map((event, idx) => {
                 const color = EVENT_TYPE_COLORS[event.event_type] || "#6b7280";
@@ -182,8 +182,8 @@ export default function InvestigatePage() {
                     key={event.id}
                     className={`relative pl-12 pr-4 py-3 cursor-pointer transition-colors border-l-2 ${
                       isSelected
-                        ? "bg-white/5 border-l-red-500"
-                        : "border-l-transparent hover:bg-white/[0.02]"
+                        ? "bg-gray-100 border-l-red-500"
+                        : "border-l-transparent hover:bg-gray-50"
                     }`}
                     onClick={() => {
                       setSelectedEventId(
@@ -193,7 +193,7 @@ export default function InvestigatePage() {
                   >
                     {/* Timeline dot */}
                     <div
-                      className="absolute left-[18px] top-5 w-3.5 h-3.5 rounded-full border-2 border-[#0f0f1a] z-10"
+                      className="absolute left-[18px] top-5 w-3.5 h-3.5 rounded-full border-2 border-white z-10"
                       style={{ backgroundColor: color }}
                     />
 
@@ -217,11 +217,11 @@ export default function InvestigatePage() {
                           {event.title}
                         </h3>
                         {isSelected && event.description && (
-                          <p className="text-xs text-[#a0a0b0] leading-relaxed mb-2">
+                          <p className="text-xs text-gray-600 leading-relaxed mb-2">
                             {event.description}
                           </p>
                         )}
-                        <div className="flex items-center gap-3 text-[11px] text-[#8888a0]">
+                        <div className="flex items-center gap-3 text-[11px] text-gray-500">
                           <span>
                             {new Date(event.event_date).toLocaleDateString(
                               "en-US",
@@ -248,7 +248,7 @@ export default function InvestigatePage() {
                           )}
                         </div>
                         {isSelected && event.source && (
-                          <p className="text-[11px] text-[#666675] mt-1">
+                          <p className="text-[11px] text-gray-400 mt-1">
                             Source: {event.source}
                           </p>
                         )}
@@ -278,7 +278,7 @@ export default function InvestigatePage() {
         </div>
 
         {/* Panel Footer CTA */}
-        <div className="p-3 border-t border-[#2a2a40] bg-[#161625]">
+        <div className="p-3 border-t border-gray-200 bg-gray-50">
           <a
             href="/submit"
             className="block w-full py-2.5 bg-red-600 hover:bg-red-700 rounded-lg font-semibold text-sm text-center transition-colors"
@@ -297,27 +297,27 @@ export default function InvestigatePage() {
         />
 
         {/* Map Legend Overlay */}
-        <div className="absolute bottom-4 left-4 bg-[#161625]/90 backdrop-blur border border-[#2a2a40] rounded-lg p-3 text-xs">
+        <div className="absolute bottom-4 left-4 bg-gray-50/90 backdrop-blur border border-gray-200 rounded-lg p-3 text-xs">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
-              <span className="text-[#d0d0dc]">Last Seen / Sighting</span>
+              <span className="text-gray-700">Last Seen / Sighting</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />
-              <span className="text-[#d0d0dc]">Poster Address</span>
+              <span className="text-gray-700">Poster Address</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
-              <span className="text-[#d0d0dc]">Transit</span>
+              <span className="text-gray-700">Transit</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />
-              <span className="text-[#d0d0dc]">Search Area / POI</span>
+              <span className="text-gray-700">Search Area / POI</span>
             </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-[#2a2a40]">
+            <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
               <div className="w-2.5 h-2.5 rounded-full border-2 border-red-500 opacity-50" />
-              <span className="text-[#8888a0]">Search radius rings</span>
+              <span className="text-gray-500">Search radius rings</span>
             </div>
           </div>
         </div>

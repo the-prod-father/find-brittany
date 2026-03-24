@@ -292,14 +292,14 @@ export default function SubmitTipPage() {
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <div className="text-5xl mb-6">✓</div>
         <h1 className="text-3xl font-bold mb-4">Thank You</h1>
-        <p className="text-[#8888a0] text-lg mb-8">
+        <p className="text-gray-500 text-lg mb-8">
           Your evidence has been submitted and will be reviewed by the investigation
           team. Every piece of information matters.
         </p>
         <div className="flex justify-center gap-4">
           <button
             onClick={() => { setSubmitted(false); setFiles([]); setNote(""); setContactName(""); setContactPhone(""); setDetectedDate(""); setDetectedTime(""); setDetectedLat(""); setDetectedLng(""); setDetectedLocation(""); }}
-            className="px-6 py-3 bg-[#1c1c2e] border border-[#2a2a40] rounded-lg hover:bg-[#2a2a40] transition-colors"
+            className="px-6 py-3 bg-white border border-gray-200 rounded-lg hover:bg-[#2a2a40] transition-colors"
           >
             Submit More
           </button>
@@ -320,7 +320,7 @@ export default function SubmitTipPage() {
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Submit Evidence</h1>
-        <p className="text-[#8888a0]">
+        <p className="text-gray-500">
           Drop your photos or videos below. Our AI will automatically extract
           timestamps, locations, and details. No account needed.
         </p>
@@ -328,7 +328,7 @@ export default function SubmitTipPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Drop Zone — The main event */}
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
           <input
             ref={fileInputRef}
             type="file"
@@ -344,17 +344,17 @@ export default function SubmitTipPage() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full py-12 border-2 border-dashed border-[#2a2a40] rounded-lg hover:border-red-500/50 hover:bg-red-500/5 transition-colors cursor-pointer"
+            className="w-full py-12 border-2 border-dashed border-gray-200 rounded-lg hover:border-red-500/50 hover:bg-red-500/5 transition-colors cursor-pointer"
           >
             <div className="text-center">
               <div className="text-4xl mb-3">📎</div>
               <div className="text-lg font-semibold mb-1">
                 Drop files here or tap to upload
               </div>
-              <div className="text-sm text-[#8888a0]">
+              <div className="text-sm text-gray-500">
                 Ring videos, photos, screenshots — anything that might help
               </div>
-              <div className="text-xs text-[#555570] mt-2">
+              <div className="text-xs text-gray-400 mt-2">
                 AI will automatically read timestamps and details from your files
               </div>
             </div>
@@ -364,7 +364,7 @@ export default function SubmitTipPage() {
           {files.length > 0 && (
             <div className="mt-4 space-y-3">
               {files.map((f, i) => (
-                <div key={i} className="bg-[#0f0f1a] rounded-lg p-4">
+                <div key={i} className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">
@@ -373,7 +373,7 @@ export default function SubmitTipPage() {
                       <span className="text-sm font-medium truncate max-w-[250px]">
                         {f.file.name}
                       </span>
-                      <span className="text-xs text-[#555570]">
+                      <span className="text-xs text-gray-400">
                         {(f.file.size / 1024 / 1024).toFixed(1)} MB
                       </span>
                     </div>
@@ -410,16 +410,16 @@ export default function SubmitTipPage() {
                       )}
                       <div className="text-blue-400 font-semibold text-[10px] uppercase tracking-wider mb-1">AI Extracted</div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                        {f.aiAnalysis.date && <div className="text-[#a0a0b0]">Date: <span className="text-white">{f.aiAnalysis.date}</span></div>}
-                        {f.aiAnalysis.time && <div className="text-[#a0a0b0]">Time: <span className="text-white">{f.aiAnalysis.time}</span></div>}
-                        {f.aiAnalysis.camera_name && <div className="text-[#a0a0b0]">Camera: <span className="text-white">{f.aiAnalysis.camera_name}</span></div>}
-                        {f.aiAnalysis.lighting && <div className="text-[#a0a0b0]">Lighting: <span className="text-white">{f.aiAnalysis.lighting}</span></div>}
+                        {f.aiAnalysis.date && <div className="text-gray-600">Date: <span className="text-white">{f.aiAnalysis.date}</span></div>}
+                        {f.aiAnalysis.time && <div className="text-gray-600">Time: <span className="text-white">{f.aiAnalysis.time}</span></div>}
+                        {f.aiAnalysis.camera_name && <div className="text-gray-600">Camera: <span className="text-white">{f.aiAnalysis.camera_name}</span></div>}
+                        {f.aiAnalysis.lighting && <div className="text-gray-600">Lighting: <span className="text-white">{f.aiAnalysis.lighting}</span></div>}
                       </div>
                       {f.aiAnalysis.people_visible && f.aiAnalysis.people_description && (
                         <div className="text-yellow-400 mt-1">People: {f.aiAnalysis.people_description}</div>
                       )}
                       {f.aiAnalysis.environment && (
-                        <div className="text-[#a0a0b0] mt-1">Scene: {f.aiAnalysis.environment}</div>
+                        <div className="text-gray-600 mt-1">Scene: {f.aiAnalysis.environment}</div>
                       )}
                       {f.aiAnalysis.notable_details && (
                         <div className="text-red-400 font-medium mt-1">{f.aiAnalysis.notable_details}</div>
@@ -437,46 +437,46 @@ export default function SubmitTipPage() {
           <div className="bg-green-900/15 border border-green-500/20 rounded-lg p-4 text-sm">
             <div className="text-green-400 text-xs font-semibold uppercase tracking-wider mb-2">Auto-Detected from your files</div>
             <div className="flex flex-wrap gap-4 text-xs">
-              {detectedDate && <div className="text-[#d0d0dc]">Date: <span className="text-white font-medium">{detectedDate}</span></div>}
-              {detectedTime && <div className="text-[#d0d0dc]">Time: <span className="text-white font-medium">{detectedTime}</span></div>}
-              {detectedLat && <div className="text-[#d0d0dc]">GPS: <span className="text-white font-medium">{detectedLat}, {detectedLng}</span></div>}
-              {detectedLocation && <div className="text-[#d0d0dc]">Location: <span className="text-white font-medium">{detectedLocation}</span></div>}
+              {detectedDate && <div className="text-gray-700">Date: <span className="text-white font-medium">{detectedDate}</span></div>}
+              {detectedTime && <div className="text-gray-700">Time: <span className="text-white font-medium">{detectedTime}</span></div>}
+              {detectedLat && <div className="text-gray-700">GPS: <span className="text-white font-medium">{detectedLat}, {detectedLng}</span></div>}
+              {detectedLocation && <div className="text-gray-700">Location: <span className="text-white font-medium">{detectedLocation}</span></div>}
             </div>
           </div>
         )}
 
         {/* Optional note */}
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-5">
-          <label className="block text-sm text-[#8888a0] mb-2">
-            Add a note <span className="text-[#555570]">(optional)</span>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <label className="block text-sm text-gray-500 mb-2">
+            Add a note <span className="text-gray-400">(optional)</span>
           </label>
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 bg-[#0f0f1a] border border-[#2a2a40] rounded-lg focus:border-red-500 focus:outline-none resize-y text-sm"
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-red-500 focus:outline-none resize-y text-sm"
             placeholder="Anything you want to tell us about this evidence..."
           />
         </div>
 
         {/* Contact info — minimal */}
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-xl p-5">
-          <label className="block text-sm text-[#8888a0] mb-3">
-            Contact info <span className="text-[#555570]">(optional — in case we need to verify)</span>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <label className="block text-sm text-gray-500 mb-3">
+            Contact info <span className="text-gray-400">(optional — in case we need to verify)</span>
           </label>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
-              className="px-3 py-2 bg-[#0f0f1a] border border-[#2a2a40] rounded-lg focus:border-red-500 focus:outline-none text-sm"
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-red-500 focus:outline-none text-sm"
               placeholder="Name"
             />
             <input
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              className="px-3 py-2 bg-[#0f0f1a] border border-[#2a2a40] rounded-lg focus:border-red-500 focus:outline-none text-sm"
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:border-red-500 focus:outline-none text-sm"
               placeholder="Phone number"
             />
           </div>
@@ -497,7 +497,7 @@ export default function SubmitTipPage() {
                 : "Submit Tip"}
         </button>
 
-        <p className="text-xs text-[#555570] text-center">
+        <p className="text-xs text-gray-400 text-center">
           All submissions are confidential and reviewed before being added to the investigation.
         </p>
       </form>

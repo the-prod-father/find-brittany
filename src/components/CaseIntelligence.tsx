@@ -133,44 +133,44 @@ export default function CaseIntelligence({
     <div className="space-y-6">
       {/* Intelligence Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-4">
-          <div className="text-xs text-[#8888a0] mb-1">News Reports</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">News Reports</div>
           <div className="text-2xl font-bold text-purple-400">
             {analysis.newsCount}
           </div>
         </div>
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-4">
-          <div className="text-xs text-[#8888a0] mb-1">
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">
             Confirmed Sightings
           </div>
           <div className="text-2xl font-bold text-red-400">
             {analysis.confirmedSightings}
           </div>
         </div>
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-4">
-          <div className="text-xs text-[#8888a0] mb-1">Evidence Files</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">Evidence Files</div>
           <div className="text-2xl font-bold text-blue-400">
             {analysis.totalEvidence}
           </div>
         </div>
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-4">
-          <div className="text-xs text-[#8888a0] mb-1">Gold Evidence</div>
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs text-gray-500 mb-1">Gold Evidence</div>
           <div className="text-2xl font-bold text-yellow-400">
             {analysis.goldEvidence}
           </div>
-          <div className="text-[10px] text-[#8888a0]">
+          <div className="text-[10px] text-gray-500">
             video + location + time
           </div>
         </div>
       </div>
 
       {/* Data Source Comparison */}
-      <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-5">
-        <h3 className="text-sm font-bold mb-4 text-[#f0f0f5]">
+      <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <h3 className="text-sm font-bold mb-4 text-gray-900">
           Data Sources — News vs. Confirmed Evidence
         </h3>
         <div className="space-y-1 text-xs">
-          <div className="grid grid-cols-12 gap-2 text-[#8888a0] font-semibold pb-2 border-b border-[#2a2a40]">
+          <div className="grid grid-cols-12 gap-2 text-gray-500 font-semibold pb-2 border-b border-gray-200">
             <div className="col-span-1">Type</div>
             <div className="col-span-4">Detail</div>
             <div className="col-span-3">Source</div>
@@ -199,7 +199,7 @@ export default function CaseIntelligence({
               return (
                 <div
                   key={dp.id}
-                  className="grid grid-cols-12 gap-2 py-1.5 border-b border-[#2a2a40]/50 items-center"
+                  className="grid grid-cols-12 gap-2 py-1.5 border-b border-gray-200/50 items-center"
                 >
                   <div className="col-span-1">
                     <span
@@ -212,10 +212,10 @@ export default function CaseIntelligence({
                       {dp.source_type}
                     </span>
                   </div>
-                  <div className="col-span-4 text-[#d0d0dc] truncate">
+                  <div className="col-span-4 text-gray-700 truncate">
                     {dp.title}
                   </div>
-                  <div className="col-span-3 text-[#8888a0] truncate">
+                  <div className="col-span-3 text-gray-500 truncate">
                     {dp.source_label}
                   </div>
                   <div className="col-span-2">
@@ -224,7 +224,7 @@ export default function CaseIntelligence({
                     ) : dp.location ? (
                       <span className="text-yellow-400">Desc</span>
                     ) : (
-                      <span className="text-[#555570]">None</span>
+                      <span className="text-gray-400">None</span>
                     )}
                   </div>
                   <div className="col-span-2">
@@ -246,11 +246,11 @@ export default function CaseIntelligence({
 
       {/* Evidence Quality Scoreboard */}
       {analysis.scoredEvidence.length > 0 && (
-        <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-5">
-          <h3 className="text-sm font-bold mb-3 text-[#f0f0f5]">
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <h3 className="text-sm font-bold mb-3 text-gray-900">
             Evidence Quality Scoreboard
           </h3>
-          <p className="text-[11px] text-[#8888a0] mb-4">
+          <p className="text-[11px] text-gray-500 mb-4">
             Video/images with GPS + timestamp = GOLD. The more metadata, the
             higher the investigative value.
           </p>
@@ -260,7 +260,7 @@ export default function CaseIntelligence({
               .map(({ evidence: e, score, quality }) => (
                 <div
                   key={e.id}
-                  className="flex items-center gap-3 p-3 bg-[#0f0f1a] rounded-lg"
+                  className="flex items-center gap-3 p-3 bg-white rounded-lg"
                 >
                   <div
                     className="w-12 h-12 rounded flex items-center justify-center text-[10px] font-black"
@@ -276,7 +276,7 @@ export default function CaseIntelligence({
                     <div className="text-sm font-medium truncate">
                       {e.title}
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-[#8888a0] mt-0.5">
+                    <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-0.5">
                       <span>{e.evidence_type}</span>
                       {e.capture_date && (
                         <span className="text-green-400">
@@ -300,7 +300,7 @@ export default function CaseIntelligence({
                     <div className="text-lg font-bold" style={{ color: quality.color }}>
                       {score}
                     </div>
-                    <div className="text-[9px] text-[#8888a0]">/ 100</div>
+                    <div className="text-[9px] text-gray-500">/ 100</div>
                   </div>
                 </div>
               ))}
@@ -309,8 +309,8 @@ export default function CaseIntelligence({
       )}
 
       {/* Key Insight: What we know vs what news says */}
-      <div className="bg-[#1c1c2e] border border-[#2a2a40] rounded-lg p-5">
-        <h3 className="text-sm font-bold mb-3 text-[#f0f0f5]">
+      <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <h3 className="text-sm font-bold mb-3 text-gray-900">
           Key Discrepancies & Insights
         </h3>
         <div className="space-y-3 text-sm">
@@ -320,7 +320,7 @@ export default function CaseIntelligence({
               <div className="font-semibold text-red-400">
                 Last Confirmed Position
               </div>
-              <p className="text-[#a0a0b0] text-xs mt-0.5">
+              <p className="text-gray-600 text-xs mt-0.5">
                 {analysis.lastKnown ? (
                   <>
                     {analysis.lastKnown.location_description} —{" "}
@@ -341,7 +341,7 @@ export default function CaseIntelligence({
               <div className="font-semibold text-purple-400">
                 News Reports Say
               </div>
-              <p className="text-[#a0a0b0] text-xs mt-0.5">
+              <p className="text-gray-600 text-xs mt-0.5">
                 {analysis.newsReports.length} articles. All reference McCouns
                 Lane as last seen. Search focused on East Norwich-Oyster Bay
                 border. Husband states they have been combing wooded, rural,
@@ -355,7 +355,7 @@ export default function CaseIntelligence({
               <div className="font-semibold text-yellow-400">
                 Gaps to Fill
               </div>
-              <p className="text-[#a0a0b0] text-xs mt-0.5">
+              <p className="text-gray-600 text-xs mt-0.5">
                 No confirmed sightings after 8:14 PM on March 20. Ring camera
                 footage and LIRR station cameras are critical. Any evidence
                 with GPS coordinates and timestamps between 8:14 PM - midnight

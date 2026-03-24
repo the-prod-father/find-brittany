@@ -243,10 +243,10 @@ export default function WalkthroughPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-104px)] bg-[#0f0f1a] flex items-center justify-center">
+      <div className="h-[calc(100vh-104px)] bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4" />
-          <p className="text-[#8888a0]">Loading investigation walkthrough...</p>
+          <p className="text-gray-500">Loading investigation walkthrough...</p>
         </div>
       </div>
     );
@@ -257,11 +257,11 @@ export default function WalkthroughPage() {
   const progress = steps.length > 1 ? (currentStep / (steps.length - 1)) * 100 : 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-104px)] bg-[#0f0f1a]">
+    <div className="flex flex-col h-[calc(100vh-104px)] bg-white">
       {/* Top bar — progress + controls */}
-      <div className="border-b border-[#2a2a40] bg-[#161625] px-4 py-2 flex items-center gap-4">
+      <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 flex items-center gap-4">
         {/* Progress bar */}
-        <div className="flex-1 h-1.5 bg-[#2a2a40] rounded-full overflow-hidden">
+        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-red-500 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
@@ -269,7 +269,7 @@ export default function WalkthroughPage() {
         </div>
 
         {/* Step counter */}
-        <div className="text-xs text-[#8888a0] whitespace-nowrap">
+        <div className="text-xs text-gray-500 whitespace-nowrap">
           {currentStep + 1} / {steps.length}
         </div>
 
@@ -278,7 +278,7 @@ export default function WalkthroughPage() {
           <button
             onClick={() => goTo(0)}
             disabled={currentStep === 0}
-            className="p-1.5 rounded hover:bg-[#2a2a40] disabled:opacity-30 transition-colors text-sm"
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors text-sm"
             title="Start"
           >
             ⏮
@@ -286,7 +286,7 @@ export default function WalkthroughPage() {
           <button
             onClick={() => goTo(Math.max(0, currentStep - 1))}
             disabled={currentStep === 0}
-            className="p-1.5 rounded hover:bg-[#2a2a40] disabled:opacity-30 transition-colors text-sm"
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors text-sm"
             title="Previous (←)"
           >
             ◀
@@ -301,7 +301,7 @@ export default function WalkthroughPage() {
           <button
             onClick={() => goTo(Math.min(steps.length - 1, currentStep + 1))}
             disabled={currentStep === steps.length - 1}
-            className="p-1.5 rounded hover:bg-[#2a2a40] disabled:opacity-30 transition-colors text-sm"
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors text-sm"
             title="Next (→)"
           >
             ▶
@@ -309,7 +309,7 @@ export default function WalkthroughPage() {
           <button
             onClick={() => goTo(steps.length - 1)}
             disabled={currentStep === steps.length - 1}
-            className="p-1.5 rounded hover:bg-[#2a2a40] disabled:opacity-30 transition-colors text-sm"
+            className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors text-sm"
             title="End"
           >
             ⏭
@@ -322,7 +322,7 @@ export default function WalkthroughPage() {
           className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
             showCanvass
               ? "bg-orange-600/30 text-orange-400 border border-orange-500/30"
-              : "bg-[#1c1c2e] text-[#8888a0] hover:text-white"
+              : "bg-white text-gray-500 hover:text-gray-900"
           }`}
         >
           {showCanvass ? "Hide" : "Show"} Canvass Zones
@@ -332,7 +332,7 @@ export default function WalkthroughPage() {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel — step detail */}
-        <div className="w-[400px] min-w-[360px] border-r border-[#2a2a40] flex flex-col">
+        <div className="w-[400px] min-w-[360px] border-r border-gray-200 flex flex-col">
           {step && (
             <div className="flex-1 overflow-y-auto p-6">
               {/* Step number + type */}
@@ -357,12 +357,12 @@ export default function WalkthroughPage() {
                       </span>
                     )}
                     {step.sameLocationAsPrev && step.type !== "gap" && (
-                      <span className="text-[10px] bg-[#2a2a40] text-[#8888a0] px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
                         Same Location
                       </span>
                     )}
                   </div>
-                  <div className="text-[#8888a0] text-xs mt-0.5">{step.confidence || ""}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">{step.confidence || ""}</div>
                 </div>
               </div>
 
@@ -375,27 +375,27 @@ export default function WalkthroughPage() {
               </h2>
 
               {/* Description — readable */}
-              <p className="text-[#c0c0d0] text-base leading-relaxed mb-6">
+              <p className="text-gray-600 text-base leading-relaxed mb-6">
                 {step.description}
               </p>
 
               {/* Key details — prominent cards */}
               <div className="space-y-3">
                 {step.clothing && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-4 border-l-4 border-yellow-500">
-                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">Last Wearing</div>
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-yellow-500">
+                    <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Last Wearing</div>
                     <div className="text-base font-medium">{step.clothing}</div>
                   </div>
                 )}
                 {step.demeanor && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-4 border-l-4 border-orange-500">
-                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">State / Demeanor</div>
+                  <div className="bg-white rounded-lg p-4 border-l-4 border-orange-500">
+                    <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">State / Demeanor</div>
                     <div className="text-base font-medium text-orange-400">{step.demeanor}</div>
                   </div>
                 )}
                 {step.source && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-4">
-                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">Source</div>
+                  <div className="bg-white rounded-lg p-4">
+                    <div className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Source</div>
                     <div className="text-sm">
                       {step.sourceUrl ? (
                         <a href={step.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
@@ -410,8 +410,8 @@ export default function WalkthroughPage() {
               </div>
 
               {/* Location footer */}
-              <div className="mt-6 pt-4 border-t border-[#2a2a40] flex items-center justify-between">
-                <div className="text-xs font-mono text-[#555570]">
+              <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-xs font-mono text-gray-400">
                   {step.lat.toFixed(5)}, {step.lng.toFixed(5)}
                 </div>
                 <div className="flex gap-3">
@@ -449,8 +449,8 @@ export default function WalkthroughPage() {
                       >
                         <div className="w-2 h-2 bg-orange-400 rounded-full mt-1 flex-shrink-0" />
                         <div>
-                          <div className="font-semibold text-[#d0d0dc]">{zone.label}</div>
-                          <div className="text-[#8888a0]">{zone.reason}</div>
+                          <div className="font-semibold text-gray-700">{zone.label}</div>
+                          <div className="text-gray-500">{zone.reason}</div>
                         </div>
                       </div>
                     ))}
@@ -467,7 +467,7 @@ export default function WalkthroughPage() {
           )}
 
           {/* Step timeline mini */}
-          <div className="border-t border-[#2a2a40] p-3 bg-[#161625]">
+          <div className="border-t border-gray-200 p-3 bg-gray-50">
             <div className="flex gap-1 overflow-x-auto">
               {steps.map((s, i) => (
                 <button
@@ -475,7 +475,7 @@ export default function WalkthroughPage() {
                   onClick={() => goTo(i)}
                   className={`flex-shrink-0 w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all ${
                     i === currentStep
-                      ? "ring-2 ring-white scale-110"
+                      ? "ring-2 ring-gray-900 scale-110"
                       : "opacity-60 hover:opacity-100"
                   }`}
                   style={{ backgroundColor: s.color + "30", color: s.color }}

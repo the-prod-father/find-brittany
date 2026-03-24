@@ -41,14 +41,16 @@ export async function POST(request: NextRequest) {
     const filename = `${timestamp}-${random}-${file.name}`;
     const filePath = `evidence/${filename}`;
 
-    // Convert file to buffer
-    const buffer = await file.arrayBuffer();
+    // Convert file to Uint8Array (required for Supabase storage on serverless)
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
 
     // Upload file to Supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("evidence")
-      .upload(filename, buffer, {
+      .upload(filename, uint8Array, {
         contentType: file.type,
+        upsert: false,
       });
 
     if (uploadError) {

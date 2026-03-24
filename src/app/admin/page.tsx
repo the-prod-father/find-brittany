@@ -123,44 +123,44 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f0f1a] text-white flex items-center justify-center">
+      <div className="min-h-screen bg-white text-white flex items-center justify-center">
         <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f1a] text-white">
+    <div className="min-h-screen bg-white text-white">
       {/* Header */}
-      <div className="border-b border-[#2a2a40] p-6">
+      <div className="border-b border-gray-200 p-6">
         <h1 className="text-3xl font-bold mb-2">Investigation Dashboard</h1>
         <p className="text-gray-400">Manage tips, evidence, and sightings</p>
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4 p-6 border-b border-[#2a2a40]">
-        <div className="bg-[#1c1c2e] rounded-lg p-4 border border-[#2a2a40]">
+      <div className="grid grid-cols-4 gap-4 p-6 border-b border-gray-200">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-sm text-gray-400 mb-1">Total Tips</div>
           <div className="text-2xl font-bold">{stats.totalTips}</div>
         </div>
-        <div className="bg-[#1c1c2e] rounded-lg p-4 border border-[#2a2a40]">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-sm text-yellow-400 mb-1">Pending Review</div>
           <div className="text-2xl font-bold text-yellow-300">
             {stats.pendingReview}
           </div>
         </div>
-        <div className="bg-[#1c1c2e] rounded-lg p-4 border border-[#2a2a40]">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-sm text-green-400 mb-1">Verified</div>
           <div className="text-2xl font-bold text-green-300">{stats.verified}</div>
         </div>
-        <div className="bg-[#1c1c2e] rounded-lg p-4 border border-[#2a2a40]">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
           <div className="text-sm text-red-400 mb-1">Critical</div>
           <div className="text-2xl font-bold text-red-300">{stats.critical}</div>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-[#2a2a40]">
+      <div className="flex border-b border-gray-200">
         {(["tips", "evidence", "sightings", "timeline"] as const).map((tab) => (
           <button
             key={tab}
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
               tips.map((tip) => (
                 <div
                   key={tip.id}
-                  className="bg-[#1c1c2e] rounded-lg border border-[#2a2a40] p-6"
+                  className="bg-white rounded-lg border border-gray-200 p-6"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -237,14 +237,14 @@ export default function AdminDashboard() {
 
                   {/* Review Section */}
                   {editingTipId === tip.id && (
-                    <div className="bg-[#0f0f1a] rounded-lg p-4 mb-4 border border-[#2a2a40]">
+                    <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
                       <label className="block text-sm font-medium mb-2">
                         Reviewer Notes
                       </label>
                       <textarea
                         value={reviewNotes}
                         onChange={(e) => setReviewNotes(e.target.value)}
-                        className="w-full bg-[#1c1c2e] border border-[#2a2a40] rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
                         placeholder="Add reviewer notes..."
                         rows={3}
                       />
@@ -311,10 +311,10 @@ export default function AdminDashboard() {
               evidence.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[#1c1c2e] rounded-lg border border-[#2a2a40] overflow-hidden hover:border-[#3a3a50] transition-colors"
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-[#3a3a50] transition-colors"
                 >
                   {/* Thumbnail */}
-                  <div className="aspect-square bg-[#0f0f1a] flex items-center justify-center overflow-hidden">
+                  <div className="aspect-square bg-white flex items-center justify-center overflow-hidden">
                     {item.file_url && item.mime_type?.startsWith("image") ? (
                       <img
                         src={item.file_url}
