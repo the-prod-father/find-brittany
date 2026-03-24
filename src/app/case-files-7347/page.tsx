@@ -261,12 +261,27 @@ export default function EvidencePage() {
                   onClick={() => setSelectedId(e.id)}
                   className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 cursor-pointer transition-all hover:scale-[1.02]"
                 >
-                  <div className="aspect-video bg-white flex items-center justify-center overflow-hidden">
+                  <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden relative">
                     {e.file_url && e.mime_type?.startsWith("image") ? (
                       <img src={e.file_url} alt={e.title} className="w-full h-full object-cover" />
+                    ) : e.file_url && e.mime_type?.startsWith("video") ? (
+                      <>
+                        <video
+                          src={e.file_url}
+                          muted
+                          preload="metadata"
+                          className="w-full h-full object-cover"
+                          onLoadedData={(ev) => { (ev.target as HTMLVideoElement).currentTime = 1; }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                            <div className="w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-l-[10px] border-l-white ml-1" />
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <div className="text-3xl">
-                        {e.evidence_type === "video" ? "🎥" : e.evidence_type === "audio" ? "🎵" : "📎"}
+                        {e.evidence_type === "audio" ? "🎵" : "📎"}
                       </div>
                     )}
                   </div>
