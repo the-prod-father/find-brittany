@@ -293,7 +293,7 @@ export default function InvestigatePage() {
         <InvestigationMap
           sightings={sightings}
           timelineEvents={timelineEvents}
-          selectedEventId={selectedEventId}
+          evidence={evidence}
         />
 
         {/* Map Legend Overlay */}

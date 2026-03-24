@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   APIProvider,
   Map,
@@ -9,184 +9,144 @@ import {
   InfoWindow,
   useMap,
 } from "@vis.gl/react-google-maps";
-import type { Sighting, TimelineEvent } from "@/lib/types";
+import type { Sighting, TimelineEvent, Evidence, Tip } from "@/lib/types";
 
 const MAP_ID = "investigation-map";
 
-// Known investigation locations
 const KEY_LOCATIONS = [
-  {
-    id: "last-seen",
-    lat: 40.8728,
-    lng: -73.534,
-    title: "Last Seen — McCouns Lane",
-    description: "8:14 PM, March 20, 2026",
-    pinColor: "#ef4444",
-    isPrimary: true,
-  },
-  {
-    id: "ivy-street",
-    lat: 40.8705,
-    lng: -73.531,
-    title: "Ivy Street",
-    description: "Missing poster address",
-    pinColor: "#eab308",
-  },
-  {
-    id: "lirr",
-    lat: 40.866,
-    lng: -73.533,
-    title: "Oyster Bay LIRR Station",
-    description: "~0.4 mi from last seen",
-    pinColor: "#3b82f6",
-  },
-  {
-    id: "mill-pond",
-    lat: 40.8645,
-    lng: -73.529,
-    title: "Mill Pond / Beekman Beach",
-    description: "Waterway south of downtown",
-    pinColor: "#22c55e",
-  },
-  {
-    id: "tr-park",
-    lat: 40.868,
-    lng: -73.537,
-    title: "Theodore Roosevelt Memorial Park",
-    description: "Wooded/waterfront area",
-    pinColor: "#22c55e",
-  },
-  {
-    id: "harbor",
-    lat: 40.863,
-    lng: -73.536,
-    title: "Oyster Bay Harbor",
-    description: "Harbor area",
-    pinColor: "#22c55e",
-  },
+  { id: "last-seen", lat: 40.8728, lng: -73.534, title: "Last Seen — McCouns Lane", description: "8:14 PM, March 20, 2026", pinColor: "#ef4444", isPrimary: true },
+  { id: "ivy-street", lat: 40.8705, lng: -73.531, title: "Ivy Street", description: "Missing poster address", pinColor: "#eab308" },
+  { id: "lirr", lat: 40.866, lng: -73.533, title: "Oyster Bay LIRR Station", description: "~0.4 mi from last seen", pinColor: "#3b82f6" },
+  { id: "mill-pond", lat: 40.8645, lng: -73.529, title: "Mill Pond / Beekman Beach", description: "Waterway south of downtown", pinColor: "#22c55e" },
+  { id: "tr-park", lat: 40.868, lng: -73.537, title: "Theodore Roosevelt Park", description: "Wooded/waterfront", pinColor: "#22c55e" },
+  { id: "harbor", lat: 40.863, lng: -73.536, title: "Oyster Bay Harbor", description: "Harbor area", pinColor: "#22c55e" },
+];
+
+const LAST_SEEN = { lat: 40.8728, lng: -73.534 };
+
+// Walking speed time-distance circles
+const TIME_CIRCLES = [
+  { minutes: 16, label: "8:30 PM", color: "#ef4444", opacity: 0.08 },
+  { minutes: 46, label: "9:00 PM", color: "#f97316", opacity: 0.05 },
+  { minutes: 226, label: "Midnight", color: "#eab308", opacity: 0.02 },
 ];
 
 interface InvestigationMapProps {
   sightings: Sighting[];
   timelineEvents: TimelineEvent[];
-  selectedEventId?: string | null;
-  onMapClick?: (lat: number, lng: number) => void;
+  evidence?: Evidence[];
+  tips?: Tip[];
+  showTimeCircles?: boolean;
+  showCoverage?: boolean;
 }
 
 function MapContent({
   sightings,
-  selectedEventId,
-  onMapClick,
+  evidence = [],
+  tips = [],
+  showTimeCircles = true,
+  showCoverage = false,
 }: {
   sightings: Sighting[];
-  selectedEventId?: string | null;
-  onMapClick?: (lat: number, lng: number) => void;
+  evidence: Evidence[];
+  tips: Tip[];
+  showTimeCircles: boolean;
+  showCoverage: boolean;
 }) {
   const map = useMap();
   const [activeMarker, setActiveMarker] = useState<string | null>(null);
+  const circlesRef = useRef<google.maps.Circle[]>([]);
+  const coverageRef = useRef<google.maps.Circle[]>([]);
+  const drawnRef = useRef(false);
 
-  // Pan to selected event location
-  const prevSelectedRef = useRef<string | null>(null);
-  if (selectedEventId && selectedEventId !== prevSelectedRef.current && map) {
-    prevSelectedRef.current = selectedEventId;
-    // Find the matching location
-    const loc = KEY_LOCATIONS.find((l) => l.id === selectedEventId);
-    if (loc) {
-      map.panTo({ lat: loc.lat, lng: loc.lng });
-      map.setZoom(17);
-      setActiveMarker(loc.id);
-    }
-    // Check sightings too
-    const sighting = sightings.find((s) => s.id === selectedEventId);
-    if (sighting) {
-      map.panTo({ lat: sighting.latitude, lng: sighting.longitude });
-      map.setZoom(17);
-      setActiveMarker(sighting.id);
-    }
-  }
-
-  // Build the movement path from sightings (chronological)
-  const sortedSightings = [...sightings]
-    .filter((s) => s.verified)
-    .sort(
-      (a, b) =>
-        new Date(a.sighting_date).getTime() -
-        new Date(b.sighting_date).getTime()
-    );
-
-  // Draw search radius circles via the map
-  const drawCircles = useCallback(() => {
+  // Draw time-distance circles
+  useEffect(() => {
     if (!map) return;
-    const center = { lat: 40.8728, lng: -73.534 };
-    const radii = [
-      { meters: 402, label: "0.25 mi", opacity: 0.15 },
-      { meters: 805, label: "0.5 mi", opacity: 0.1 },
-      { meters: 1609, label: "1 mi", opacity: 0.06 },
-    ];
 
-    radii.forEach((r) => {
-      new google.maps.Circle({
+    // Clear old circles
+    circlesRef.current.forEach((c) => c.setMap(null));
+    circlesRef.current = [];
+
+    if (!showTimeCircles) return;
+
+    TIME_CIRCLES.forEach((tc) => {
+      const radiusMeters = (tc.minutes / 60) * 5000; // 5km/h walking speed
+      const circle = new google.maps.Circle({
         map,
-        center,
-        radius: r.meters,
-        strokeColor: "#ef4444",
-        strokeOpacity: 0.4,
-        strokeWeight: 1.5,
-        fillColor: "#ef4444",
-        fillOpacity: r.opacity,
+        center: LAST_SEEN,
+        radius: radiusMeters,
+        strokeColor: tc.color,
+        strokeOpacity: 0.5,
+        strokeWeight: 2,
+        fillColor: tc.color,
+        fillOpacity: tc.opacity,
         clickable: false,
       });
+      circlesRef.current.push(circle);
     });
 
-    // Draw movement path polyline
-    if (sortedSightings.length > 1) {
-      const path = sortedSightings.map((s) => ({
-        lat: s.latitude,
-        lng: s.longitude,
-      }));
-      new google.maps.Polyline({
-        map,
-        path,
-        strokeColor: "#e94560",
-        strokeOpacity: 0.8,
-        strokeWeight: 3,
-        geodesic: true,
-        icons: [
-          {
-            icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3 },
-            offset: "50%",
-          },
-        ],
+    return () => {
+      circlesRef.current.forEach((c) => c.setMap(null));
+    };
+  }, [map, showTimeCircles]);
+
+  // Draw coverage circles around evidence with GPS
+  useEffect(() => {
+    if (!map) return;
+
+    coverageRef.current.forEach((c) => c.setMap(null));
+    coverageRef.current = [];
+
+    if (!showCoverage) return;
+
+    evidence
+      .filter((e) => e.latitude && e.longitude)
+      .forEach((e) => {
+        const circle = new google.maps.Circle({
+          map,
+          center: { lat: e.latitude!, lng: e.longitude! },
+          radius: 100,
+          strokeColor: "#22c55e",
+          strokeOpacity: 0.4,
+          strokeWeight: 1,
+          fillColor: "#22c55e",
+          fillOpacity: 0.1,
+          clickable: false,
+        });
+        coverageRef.current.push(circle);
       });
-    }
-  }, [map, sortedSightings]);
 
-  // Draw circles once map is ready
-  if (map) {
-    // Use a flag to avoid re-drawing
-    const mapDiv = map.getDiv();
-    if (!mapDiv.dataset.circlesDrawn) {
-      mapDiv.dataset.circlesDrawn = "true";
-      drawCircles();
-    }
-  }
+    return () => {
+      coverageRef.current.forEach((c) => c.setMap(null));
+    };
+  }, [map, showCoverage, evidence]);
 
-  const confidenceColor = (confidence: string) => {
-    switch (confidence) {
-      case "confirmed":
-        return "#ef4444";
-      case "likely":
-        return "#f97316";
-      case "possible":
-        return "#eab308";
-      default:
-        return "#8888a0";
-    }
-  };
+  // Movement path polyline (draw once)
+  useEffect(() => {
+    if (!map || drawnRef.current) return;
+    drawnRef.current = true;
+
+    const sorted = [...sightings]
+      .filter((s) => s.verified)
+      .sort((a, b) => new Date(a.sighting_date).getTime() - new Date(b.sighting_date).getTime());
+
+    if (sorted.length < 2) return;
+
+    new google.maps.Polyline({
+      map,
+      path: sorted.map((s) => ({ lat: s.latitude, lng: s.longitude })),
+      strokeColor: "#e94560",
+      strokeOpacity: 0.8,
+      strokeWeight: 3,
+      icons: [
+        { icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3, fillColor: "#e94560", fillOpacity: 1 }, offset: "50%" },
+      ],
+    });
+  }, [map, sightings]);
 
   return (
     <>
-      {/* Key investigation locations */}
+      {/* Key locations */}
       {KEY_LOCATIONS.map((loc) => (
         <AdvancedMarker
           key={loc.id}
@@ -200,73 +160,124 @@ function MapContent({
             scale={loc.isPrimary ? 1.4 : 1.0}
           />
           {activeMarker === loc.id && (
-            <InfoWindow
-              position={{ lat: loc.lat, lng: loc.lng }}
-              onCloseClick={() => setActiveMarker(null)}
-            >
-              <div style={{ color: "#000", maxWidth: 200 }}>
+            <InfoWindow position={{ lat: loc.lat, lng: loc.lng }} onCloseClick={() => setActiveMarker(null)}>
+              <div style={{ color: "#000", maxWidth: 200, fontSize: 13 }}>
                 <strong>{loc.title}</strong>
-                <p style={{ margin: "4px 0 0", fontSize: 12 }}>
-                  {loc.description}
-                </p>
+                <p style={{ margin: "4px 0 0" }}>{loc.description}</p>
                 <p style={{ margin: "4px 0 0", fontSize: 11, color: "#666" }}>
                   {loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}
                 </p>
-                <a
-                  href={`https://www.google.com/maps/@${loc.lat},${loc.lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0x0:0x0!2e0!7i16384!8i8192`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 11, color: "#3b82f6" }}
-                >
-                  Open Street View
-                </a>
               </div>
             </InfoWindow>
           )}
         </AdvancedMarker>
       ))}
 
-      {/* Database sightings */}
+      {/* Sighting markers */}
       {sightings.map((s) => (
         <AdvancedMarker
-          key={s.id}
+          key={`s-${s.id}`}
           position={{ lat: s.latitude, lng: s.longitude }}
-          onClick={() => setActiveMarker(activeMarker === s.id ? null : s.id)}
+          onClick={() => setActiveMarker(activeMarker === `s-${s.id}` ? null : `s-${s.id}`)}
         >
           <Pin
-            background={confidenceColor(s.confidence)}
-            borderColor={confidenceColor(s.confidence)}
-            glyphColor="#ffffff"
+            background={s.confidence === "confirmed" ? "#ef4444" : s.confidence === "likely" ? "#f97316" : "#eab308"}
+            glyphColor="#fff"
             scale={0.9}
           />
-          {activeMarker === s.id && (
-            <InfoWindow
-              position={{ lat: s.latitude, lng: s.longitude }}
-              onCloseClick={() => setActiveMarker(null)}
-            >
-              <div style={{ color: "#000", maxWidth: 220 }}>
+          {activeMarker === `s-${s.id}` && (
+            <InfoWindow position={{ lat: s.latitude, lng: s.longitude }} onCloseClick={() => setActiveMarker(null)}>
+              <div style={{ color: "#000", maxWidth: 220, fontSize: 13 }}>
                 <strong>{s.description}</strong>
-                <p style={{ margin: "4px 0", fontSize: 12 }}>
-                  {new Date(s.sighting_date).toLocaleString()}
-                </p>
-                {s.clothing_description && (
-                  <p style={{ fontSize: 11, color: "#666" }}>
-                    Wearing: {s.clothing_description}
-                  </p>
-                )}
-                {s.demeanor && (
-                  <p style={{ fontSize: 11, color: "#666" }}>
-                    Demeanor: {s.demeanor}
-                  </p>
-                )}
-                <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
-                  Confidence: {s.confidence}
-                </p>
+                <p style={{ margin: "4px 0", fontSize: 12 }}>{new Date(s.sighting_date).toLocaleString()}</p>
+                {s.clothing_description && <p style={{ fontSize: 11, color: "#666" }}>Wearing: {s.clothing_description}</p>}
+                {s.demeanor && <p style={{ fontSize: 11, color: "#666" }}>Demeanor: {s.demeanor}</p>}
+                <p style={{ fontSize: 11, color: "#888" }}>Confidence: {s.confidence}</p>
               </div>
             </InfoWindow>
           )}
         </AdvancedMarker>
       ))}
+
+      {/* Evidence markers with video/image thumbnails */}
+      {evidence
+        .filter((e) => e.latitude && e.longitude)
+        .map((e) => (
+          <AdvancedMarker
+            key={`e-${e.id}`}
+            position={{ lat: e.latitude!, lng: e.longitude! }}
+            onClick={() => setActiveMarker(activeMarker === `e-${e.id}` ? null : `e-${e.id}`)}
+          >
+            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-md">
+              {e.evidence_type === "video" ? "🎥" : e.evidence_type === "photo" ? "📷" : "📎"}
+            </div>
+            {activeMarker === `e-${e.id}` && (
+              <InfoWindow position={{ lat: e.latitude!, lng: e.longitude! }} onCloseClick={() => setActiveMarker(null)}>
+                <div style={{ color: "#000", maxWidth: 280, fontSize: 13 }}>
+                  {/* Video/image thumbnail */}
+                  {e.file_url && e.mime_type?.startsWith("video") && (
+                    <video
+                      src={e.file_url}
+                      muted
+                      preload="metadata"
+                      controls
+                      style={{ width: "100%", borderRadius: 6, marginBottom: 8 }}
+                      onLoadedData={(ev) => { (ev.target as HTMLVideoElement).currentTime = 1; }}
+                    />
+                  )}
+                  {e.file_url && e.mime_type?.startsWith("image") && (
+                    <img src={e.file_url} alt={e.title} style={{ width: "100%", borderRadius: 6, marginBottom: 8 }} />
+                  )}
+                  <strong>{e.title}</strong>
+                  {e.capture_date && <p style={{ margin: "4px 0", fontSize: 12 }}>{new Date(e.capture_date).toLocaleString()}</p>}
+                  {e.description && <p style={{ fontSize: 11, color: "#666", margin: "4px 0" }}>{e.description}</p>}
+                  <p style={{ fontSize: 11, color: "#888" }}>
+                    Status: {e.status} · {e.evidence_type}
+                  </p>
+                </div>
+              </InfoWindow>
+            )}
+          </AdvancedMarker>
+        ))}
+
+      {/* Tip markers */}
+      {(tips || [])
+        .filter((t) => t.latitude && t.longitude)
+        .map((t) => (
+          <AdvancedMarker
+            key={`t-${t.id}`}
+            position={{ lat: t.latitude!, lng: t.longitude! }}
+            onClick={() => setActiveMarker(activeMarker === `t-${t.id}` ? null : `t-${t.id}`)}
+          >
+            <Pin background="#eab308" glyphColor="#fff" scale={0.7} />
+            {activeMarker === `t-${t.id}` && (
+              <InfoWindow position={{ lat: t.latitude!, lng: t.longitude! }} onCloseClick={() => setActiveMarker(null)}>
+                <div style={{ color: "#000", maxWidth: 200, fontSize: 13 }}>
+                  <strong>{t.title}</strong>
+                  <p style={{ margin: "4px 0", fontSize: 12 }}>{t.description}</p>
+                  <p style={{ fontSize: 11, color: "#888" }}>Status: {t.status}</p>
+                </div>
+              </InfoWindow>
+            )}
+          </AdvancedMarker>
+        ))}
+
+      {/* Time circle labels */}
+      {showTimeCircles &&
+        TIME_CIRCLES.map((tc) => {
+          const radiusMeters = (tc.minutes / 60) * 5000;
+          const labelLat = LAST_SEEN.lat + radiusMeters / 111320;
+          return (
+            <AdvancedMarker key={tc.label} position={{ lat: labelLat, lng: LAST_SEEN.lng }} zIndex={5}>
+              <div
+                className="px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap"
+                style={{ backgroundColor: tc.color + "30", color: tc.color, border: `1px solid ${tc.color}60` }}
+              >
+                {tc.label}
+              </div>
+            </AdvancedMarker>
+          );
+        })}
     </>
   );
 }
@@ -274,15 +285,17 @@ function MapContent({
 export default function InvestigationMap({
   sightings,
   timelineEvents,
-  selectedEventId,
-  onMapClick,
+  evidence = [],
+  tips = [],
+  showTimeCircles = true,
+  showCoverage = false,
 }: InvestigationMapProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   if (!apiKey) {
     return (
-      <div className="w-full h-full bg-[#0f0f1a] flex items-center justify-center">
-        <p className="text-[#8888a0]">Google Maps API key not configured</p>
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <p className="text-gray-500">Google Maps API key not configured</p>
       </div>
     );
   }
@@ -301,16 +314,13 @@ export default function InvestigationMap({
         zoomControl={true}
         style={{ width: "100%", height: "100%" }}
         colorScheme="DARK"
-        onClick={(e) => {
-          if (onMapClick && e.detail.latLng) {
-            onMapClick(e.detail.latLng.lat, e.detail.latLng.lng);
-          }
-        }}
       >
         <MapContent
           sightings={sightings}
-          selectedEventId={selectedEventId}
-          onMapClick={onMapClick}
+          evidence={evidence}
+          tips={tips}
+          showTimeCircles={showTimeCircles}
+          showCoverage={showCoverage}
         />
       </Map>
     </APIProvider>

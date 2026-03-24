@@ -1,383 +1,270 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Tip, Evidence, EvidenceType } from "@/lib/types";
+import { useEffect, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+import type { Sighting, TimelineEvent, Evidence, Tip } from "@/lib/types";
+import CaseChat from "@/components/CaseChat";
+import AddressSearch from "@/components/AddressSearch";
 
-type TabType = "tips" | "evidence" | "sightings" | "timeline";
+const InvestigationMap = dynamic(
+  () => import("@/components/InvestigationMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
+      </div>
+    ),
+  }
+);
 
-interface Stats {
-  totalTips: number;
-  pendingReview: number;
-  verified: number;
-  critical: number;
+interface CanvassLocation {
+  id: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  status: string;
+  notes: string | null;
+  contacted_by: string | null;
+  contacted_at: string | null;
+  has_camera: boolean | null;
+  footage_obtained: boolean;
+  footage_notes: string | null;
+  priority: string;
 }
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>("tips");
-  const [tips, setTips] = useState<Tip[]>([]);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    totalTips: 0,
-    pendingReview: 0,
-    verified: 0,
-    critical: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [editingTipId, setEditingTipId] = useState<string | null>(null);
-  const [reviewNotes, setReviewNotes] = useState<string>("");
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  not_visited: { label: "Not Visited", color: "#ef4444", bg: "bg-red-50 text-red-700" },
+  no_answer: { label: "No Answer", color: "#f97316", bg: "bg-orange-50 text-orange-700" },
+  visited: { label: "Visited", color: "#3b82f6", bg: "bg-blue-50 text-blue-700" },
+  has_camera: { label: "Has Camera", color: "#eab308", bg: "bg-yellow-50 text-yellow-700" },
+  footage_obtained: { label: "Footage Got", color: "#22c55e", bg: "bg-green-50 text-green-700" },
+  no_camera: { label: "No Camera", color: "#6b7280", bg: "bg-gray-50 text-gray-600" },
+  refused: { label: "Refused", color: "#6b7280", bg: "bg-gray-50 text-gray-500" },
+};
 
-  // Load data on mount
+export default function CommandCenter() {
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [tips, setTips] = useState<Tip[]>([]);
+  const [canvass, setCanvass] = useState<CanvassLocation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showTimeCircles, setShowTimeCircles] = useState(true);
+  const [showCoverage, setShowCoverage] = useState(false);
+  const [showCanvassList, setShowCanvassList] = useState(false);
+  const [addingAddress, setAddingAddress] = useState(false);
+
   useEffect(() => {
-    loadData();
+    async function load() {
+      try {
+        const [tRes, sRes, eRes, tipRes, cRes] = await Promise.all([
+          fetch("/api/timeline"),
+          fetch("/api/sightings"),
+          fetch("/api/evidence"),
+          fetch("/api/tips?all=true"),
+          fetch("/api/canvass"),
+        ]);
+        const [tData, sData, eData, tipData, cData] = await Promise.all([
+          tRes.json(), sRes.json(), eRes.json(), tipRes.json(), cRes.json(),
+        ]);
+        setTimelineEvents(tData.events || []);
+        setSightings(sData.sightings || []);
+        setEvidence(eData.evidence || []);
+        setTips(tipData.tips || []);
+        setCanvass(cData.locations || []);
+      } catch (err) {
+        console.error("Load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Fetch all tips
-      const tipsResponse = await fetch("/api/tips?all=true");
-      const tipsData = await tipsResponse.json();
-      const tipsArray = tipsData.tips || [];
-      setTips(tipsArray);
-
-      // Fetch evidence
-      const evidenceResponse = await fetch("/api/evidence");
-      const evidenceData = await evidenceResponse.json();
-      setEvidence(evidenceData.evidence || []);
-
-      // Calculate stats
-      setStats({
-        totalTips: tipsArray.length,
-        pendingReview: tipsArray.filter(
-          (t: Tip) => t.status === "pending" || t.status === "under_review"
-        ).length,
-        verified: tipsArray.filter((t: Tip) => t.status === "verified").length,
-        critical: tipsArray.filter((t: Tip) => t.status === "critical").length,
-      });
-    } catch (error) {
-      console.error("Failed to load data:", error);
-    } finally {
-      setLoading(false);
+  const addCanvassLocation = useCallback(async ({ address, lat, lng }: { address: string; lat: number; lng: number }) => {
+    const res = await fetch("/api/canvass", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, latitude: lat, longitude: lng }),
+    });
+    if (res.ok) {
+      const { id } = await res.json();
+      setCanvass((prev) => [...prev, { id, address, latitude: lat, longitude: lng, status: "not_visited", notes: null, contacted_by: null, contacted_at: null, has_camera: null, footage_obtained: false, footage_notes: null, priority: "medium" }]);
+      setAddingAddress(false);
     }
-  };
+  }, []);
 
-  const updateTipStatus = async (
-    tipId: string,
-    newStatus: string
-  ) => {
-    try {
-      const response = await fetch(`/api/tips/${tipId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: newStatus,
-          reviewer_notes: reviewNotes,
-          reviewed_at: new Date().toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        setTips(
-          tips.map((tip) =>
-            tip.id === tipId ? { ...tip, status: newStatus as any } : tip
-          )
-        );
-        setEditingTipId(null);
-        setReviewNotes("");
-        loadData();
-      }
-    } catch (error) {
-      console.error("Failed to update tip:", error);
+  const updateCanvass = useCallback(async (id: string, updates: Partial<CanvassLocation>) => {
+    const res = await fetch("/api/canvass", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (res.ok) {
+      setCanvass((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
     }
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-900/30 text-yellow-300 border-yellow-700";
-      case "under_review":
-        return "bg-blue-900/30 text-blue-300 border-blue-700";
-      case "verified":
-        return "bg-green-900/30 text-green-300 border-green-700";
-      case "critical":
-        return "bg-red-900/30 text-red-300 border-red-700";
-      case "dismissed":
-        return "bg-gray-900/30 text-gray-300 border-gray-700";
-      default:
-        return "bg-gray-900/30 text-gray-300 border-gray-700";
-    }
-  };
-
-  const getEvidenceTypeLabel = (type: EvidenceType): string => {
-    const labels: Record<EvidenceType, string> = {
-      photo: "📷 Photo",
-      video: "🎥 Video",
-      document: "📄 Document",
-      screenshot: "🖼️ Screenshot",
-      audio: "🎵 Audio",
-      social_media_link: "🔗 Social Media",
-      other: "📎 Other",
-    };
-    return labels[type] || type;
-  };
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white text-white flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="h-screen bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto" />
       </div>
     );
   }
 
+  const canvassStats = {
+    total: canvass.length,
+    visited: canvass.filter((c) => c.status !== "not_visited" && c.status !== "no_answer").length,
+    footage: canvass.filter((c) => c.footage_obtained).length,
+  };
+
   return (
-    <div className="min-h-screen bg-white text-white">
-      {/* Header */}
-      <div className="border-b border-gray-200 p-6">
-        <h1 className="text-3xl font-bold mb-2">Investigation Dashboard</h1>
-        <p className="text-gray-400">Manage tips, evidence, and sightings</p>
-      </div>
+    <div className="h-[calc(100vh-90px)] sm:h-[calc(100vh-104px)] relative">
+      {/* Full-screen map */}
+      <InvestigationMap
+        sightings={sightings}
+        timelineEvents={timelineEvents}
+        evidence={evidence}
+        tips={tips}
+        showTimeCircles={showTimeCircles}
+        showCoverage={showCoverage}
+      />
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-4 p-6 border-b border-gray-200">
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-sm text-gray-400 mb-1">Total Tips</div>
-          <div className="text-2xl font-bold">{stats.totalTips}</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-sm text-yellow-400 mb-1">Pending Review</div>
-          <div className="text-2xl font-bold text-yellow-300">
-            {stats.pendingReview}
+      {/* Top-left: Controls */}
+      <div className="absolute top-3 left-3 z-10">
+        <div className="bg-white/95 backdrop-blur border border-gray-200 rounded-xl shadow-lg p-3 space-y-2" style={{ maxWidth: 200 }}>
+          <div className="grid grid-cols-2 gap-1.5 text-center">
+            <div className="bg-gray-50 rounded py-1">
+              <div className="text-sm font-bold">{evidence.length}</div>
+              <div className="text-[9px] text-gray-500">Evidence</div>
+            </div>
+            <div className="bg-gray-50 rounded py-1">
+              <div className="text-sm font-bold">{sightings.length}</div>
+              <div className="text-[9px] text-gray-500">Sightings</div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 text-[11px] cursor-pointer">
+              <input type="checkbox" checked={showTimeCircles} onChange={(e) => setShowTimeCircles(e.target.checked)} className="rounded" />
+              <span className="text-gray-700">Walking radius</span>
+            </label>
+            <label className="flex items-center gap-2 text-[11px] cursor-pointer">
+              <input type="checkbox" checked={showCoverage} onChange={(e) => setShowCoverage(e.target.checked)} className="rounded" />
+              <span className="text-gray-700">Camera coverage</span>
+            </label>
+          </div>
+
+          <div className="pt-2 border-t border-gray-100 space-y-1">
+            <button
+              onClick={() => setShowCanvassList(!showCanvassList)}
+              className={`w-full text-left text-[11px] px-2 py-1.5 rounded font-medium ${showCanvassList ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-600"}`}
+            >
+              Canvass List ({canvassStats.visited}/{canvassStats.total})
+            </button>
+            <a href="/review/bk-ops-7347" className="block text-[11px] text-blue-600 hover:underline px-2">Review Evidence</a>
+            <a href="/walkthrough" className="block text-[11px] text-blue-600 hover:underline px-2">Walkthrough</a>
           </div>
         </div>
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-sm text-green-400 mb-1">Verified</div>
-          <div className="text-2xl font-bold text-green-300">{stats.verified}</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-sm text-red-400 mb-1">Critical</div>
-          <div className="text-2xl font-bold text-red-300">{stats.critical}</div>
-        </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex border-b border-gray-200">
-        {(["tips", "evidence", "sightings", "timeline"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-4 font-medium capitalize transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-blue-500 text-blue-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {/* Canvass checklist panel */}
+      {showCanvassList && (
+        <div className="absolute top-3 left-[220px] z-10 bg-white/95 backdrop-blur border border-gray-200 rounded-xl shadow-lg overflow-hidden flex flex-col"
+          style={{ width: 340, maxHeight: "calc(100vh - 160px)" }}
+        >
+          <div className="p-3 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-bold text-gray-900">Door-to-Door Canvass</h3>
+              <button onClick={() => setShowCanvassList(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+            </div>
+            <div className="flex gap-2 text-[10px] text-gray-500">
+              <span>{canvassStats.total} locations</span>
+              <span>·</span>
+              <span>{canvassStats.visited} contacted</span>
+              <span>·</span>
+              <span className="text-green-600 font-medium">{canvassStats.footage} footage</span>
+            </div>
 
-      {/* Content Area */}
-      <div className="p-6">
-        {/* Tips Tab */}
-        {activeTab === "tips" && (
-          <div className="space-y-4">
-            {tips.length === 0 ? (
-              <div className="text-center text-gray-400 py-12">
-                No tips yet
+            {/* Add location */}
+            {addingAddress ? (
+              <div className="mt-2">
+                <AddressSearch
+                  onSelect={(result) => addCanvassLocation(result)}
+                  placeholder="Type address to add..."
+                />
+                <button onClick={() => setAddingAddress(false)} className="text-[10px] text-gray-500 mt-1">Cancel</button>
               </div>
             ) : (
-              tips.map((tip) => (
-                <div
-                  key={tip.id}
-                  className="bg-white rounded-lg border border-gray-200 p-6"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold">{tip.title}</h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeColor(
-                            tip.status
-                          )}`}
-                        >
-                          {tip.status.replace("_", " ")}
-                        </span>
-                      </div>
-                      <p className="text-gray-300 mb-3">{tip.description}</p>
-
-                      <div className="text-sm text-gray-400 space-y-1">
-                        {!tip.is_anonymous && tip.submitter_name && (
-                          <div>Submitter: {tip.submitter_name}</div>
-                        )}
-                        {tip.submitter_email && (
-                          <div>Email: {tip.submitter_email}</div>
-                        )}
-                        {tip.submitter_phone && (
-                          <div>Phone: {tip.submitter_phone}</div>
-                        )}
-                        {tip.tip_date && <div>Tip Date: {tip.tip_date}</div>}
-                        {tip.location_description && (
-                          <div>Location: {tip.location_description}</div>
-                        )}
-                        <div>
-                          Submitted: {new Date(tip.created_at).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {editingTipId === tip.id && (
-                      <button
-                        onClick={() => setEditingTipId(null)}
-                        className="ml-4 text-gray-400 hover:text-white"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Review Section */}
-                  {editingTipId === tip.id && (
-                    <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
-                      <label className="block text-sm font-medium mb-2">
-                        Reviewer Notes
-                      </label>
-                      <textarea
-                        value={reviewNotes}
-                        onChange={(e) => setReviewNotes(e.target.value)}
-                        className="w-full bg-white border border-gray-200 rounded px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                        placeholder="Add reviewer notes..."
-                        rows={3}
-                      />
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 flex-wrap">
-                    {editingTipId === tip.id ? (
-                      <>
-                        <button
-                          onClick={() =>
-                            updateTipStatus(tip.id, "verified")
-                          }
-                          className="px-4 py-2 bg-green-900/30 text-green-300 border border-green-700 rounded hover:bg-green-900/50 transition-colors text-sm font-medium"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateTipStatus(tip.id, "dismissed")
-                          }
-                          className="px-4 py-2 bg-gray-900/30 text-gray-300 border border-gray-700 rounded hover:bg-gray-900/50 transition-colors text-sm font-medium"
-                        >
-                          Dismiss
-                        </button>
-                        <button
-                          onClick={() =>
-                            updateTipStatus(tip.id, "critical")
-                          }
-                          className="px-4 py-2 bg-red-900/30 text-red-300 border border-red-700 rounded hover:bg-red-900/50 transition-colors text-sm font-medium"
-                        >
-                          Mark Critical
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditingTipId(tip.id);
-                            setReviewNotes(tip.reviewer_notes || "");
-                          }}
-                          className="px-4 py-2 bg-blue-900/30 text-blue-300 border border-blue-700 rounded hover:bg-blue-900/50 transition-colors text-sm font-medium"
-                        >
-                          Review
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))
+              <button
+                onClick={() => setAddingAddress(true)}
+                className="mt-2 w-full py-1.5 border border-dashed border-gray-300 rounded text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700"
+              >
+                + Add location
+              </button>
             )}
           </div>
-        )}
 
-        {/* Evidence Tab */}
-        {activeTab === "evidence" && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {evidence.length === 0 ? (
-              <div className="col-span-full text-center text-gray-400 py-12">
-                No evidence yet
+          {/* Location list */}
+          <div className="flex-1 overflow-y-auto">
+            {canvass.length === 0 ? (
+              <div className="p-4 text-center text-xs text-gray-500">
+                No locations yet. Add addresses to start canvassing.
               </div>
             ) : (
-              evidence.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-[#3a3a50] transition-colors"
-                >
-                  {/* Thumbnail */}
-                  <div className="aspect-square bg-white flex items-center justify-center overflow-hidden">
-                    {item.file_url && item.mime_type?.startsWith("image") ? (
-                      <img
-                        src={item.file_url}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="text-3xl">
-                        {item.evidence_type === "video"
-                          ? "🎥"
-                          : item.evidence_type === "audio"
-                            ? "🎵"
-                            : item.evidence_type === "document"
-                              ? "📄"
-                              : "📎"}
+              canvass.map((loc) => {
+                const status = STATUS_CONFIG[loc.status] || STATUS_CONFIG.not_visited;
+                return (
+                  <div key={loc.id} className="border-b border-gray-100 p-3 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="text-xs font-medium text-gray-900 leading-tight">{loc.address}</div>
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded whitespace-nowrap ${status.bg}`}>
+                        {status.label}
+                      </span>
+                    </div>
+
+                    {loc.notes && <div className="text-[10px] text-gray-500 mb-1.5">{loc.notes}</div>}
+                    {loc.contacted_by && (
+                      <div className="text-[10px] text-gray-400 mb-1.5">
+                        By {loc.contacted_by} {loc.contacted_at ? `· ${new Date(loc.contacted_at).toLocaleDateString()}` : ""}
                       </div>
                     )}
-                  </div>
 
-                  {/* Info */}
-                  <div className="p-3">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs font-semibold mb-2 border ${getStatusBadgeColor(
-                        item.status
-                      )}`}
-                    >
-                      {item.status}
-                    </span>
-                    <h4 className="font-bold text-sm mb-1">{item.title}</h4>
-                    <p className="text-xs text-gray-400 mb-2">
-                      {getEvidenceTypeLabel(item.evidence_type)}
-                    </p>
-                    {item.submitted_by_name && (
-                      <p className="text-xs text-gray-500">
-                        By: {item.submitted_by_name}
-                      </p>
-                    )}
-                    {item.capture_date && (
-                      <p className="text-xs text-gray-500">
-                        {new Date(item.capture_date).toLocaleDateString()}
-                      </p>
-                    )}
+                    {/* Quick status buttons */}
+                    <div className="flex flex-wrap gap-1">
+                      {loc.status === "not_visited" && (
+                        <>
+                          <button onClick={() => updateCanvass(loc.id, { status: "no_answer" })} className="text-[9px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded hover:bg-orange-100">No Answer</button>
+                          <button onClick={() => updateCanvass(loc.id, { status: "visited" })} className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100">Visited</button>
+                          <button onClick={() => updateCanvass(loc.id, { status: "no_camera" })} className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">No Camera</button>
+                        </>
+                      )}
+                      {(loc.status === "visited" || loc.status === "no_answer") && (
+                        <>
+                          <button onClick={() => updateCanvass(loc.id, { status: "has_camera", has_camera: true })} className="text-[9px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded hover:bg-yellow-100">Has Camera</button>
+                          <button onClick={() => updateCanvass(loc.id, { status: "no_camera" })} className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">No Camera</button>
+                          <button onClick={() => updateCanvass(loc.id, { status: "refused" })} className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">Refused</button>
+                        </>
+                      )}
+                      {loc.status === "has_camera" && !loc.footage_obtained && (
+                        <button onClick={() => updateCanvass(loc.id, { status: "footage_obtained", footage_obtained: true })} className="text-[9px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded hover:bg-green-100 font-medium">Footage Obtained</button>
+                      )}
+                      {loc.footage_obtained && (
+                        <span className="text-[9px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium">✓ Footage collected</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Sightings Tab */}
-        {activeTab === "sightings" && (
-          <div className="text-center text-gray-400 py-12">
-            Sightings management coming soon
-          </div>
-        )}
-
-        {/* Timeline Tab */}
-        {activeTab === "timeline" && (
-          <div className="text-center text-gray-400 py-12">
-            Timeline management coming soon
-          </div>
-        )}
-      </div>
+      {/* Bottom-right: AI Chat */}
+      <CaseChat className="absolute bottom-4 right-4 z-10" />
     </div>
   );
 }
