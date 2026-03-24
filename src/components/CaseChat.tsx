@@ -17,7 +17,13 @@ const QUICK_PROMPTS = [
   "Where could she be by now?",
 ];
 
-export default function CaseChat({ className = "" }: { className?: string }) {
+interface CaseChatProps {
+  className?: string;
+  pendingQuestion?: string | null;
+  onQuestionHandled?: () => void;
+}
+
+export default function CaseChat({ className = "", pendingQuestion, onQuestionHandled }: CaseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -28,6 +34,14 @@ export default function CaseChat({ className = "" }: { className?: string }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle questions from map clicks
+  useEffect(() => {
+    if (pendingQuestion) {
+      sendMessage(pendingQuestion);
+      onQuestionHandled?.();
+    }
+  }, [pendingQuestion]);
 
   async function sendMessage(text?: string) {
     const msg = text || input.trim();

@@ -38,6 +38,7 @@ interface InvestigationMapProps {
   tips?: Tip[];
   showTimeCircles?: boolean;
   showCoverage?: boolean;
+  onAreaClick?: (lat: number, lng: number) => void;
 }
 
 function MapContent({
@@ -289,6 +290,7 @@ export default function InvestigationMap({
   tips = [],
   showTimeCircles = true,
   showCoverage = false,
+  onAreaClick,
 }: InvestigationMapProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -313,7 +315,14 @@ export default function InvestigationMap({
         fullscreenControl={true}
         zoomControl={true}
         mapTypeId="satellite"
+        tilt={45}
+        heading={0}
         style={{ width: "100%", height: "100%" }}
+        onClick={(e) => {
+          if (onAreaClick && e.detail.latLng) {
+            onAreaClick(e.detail.latLng.lat, e.detail.latLng.lng);
+          }
+        }}
       >
         <MapContent
           sightings={sightings}

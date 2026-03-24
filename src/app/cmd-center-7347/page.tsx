@@ -54,6 +54,7 @@ export default function CommandCenter() {
   const [showCoverage, setShowCoverage] = useState(false);
   const [showCanvassList, setShowCanvassList] = useState(false);
   const [addingAddress, setAddingAddress] = useState(false);
+  const [mapQuestion, setMapQuestion] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -130,6 +131,9 @@ export default function CommandCenter() {
         tips={tips}
         showTimeCircles={showTimeCircles}
         showCoverage={showCoverage}
+        onAreaClick={(lat, lng) => {
+          setMapQuestion(`I clicked on coordinates ${lat.toFixed(5)}, ${lng.toFixed(5)} on the investigation map. What's in this area? What buildings, businesses, or homes are here? Are there any cameras, evidence, or sightings nearby? What should we investigate or look for in this specific area? Consider proximity to Brittany's last known path.`);
+        }}
       />
 
       {/* Top-left: Controls */}
@@ -264,7 +268,11 @@ export default function CommandCenter() {
       )}
 
       {/* Bottom-right: AI Chat */}
-      <CaseChat className="absolute bottom-4 right-4 z-10" />
+      <CaseChat
+        className="absolute bottom-4 right-4 z-10"
+        pendingQuestion={mapQuestion}
+        onQuestionHandled={() => setMapQuestion(null)}
+      />
     </div>
   );
 }
