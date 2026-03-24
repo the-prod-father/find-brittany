@@ -33,6 +33,7 @@ interface WalkthroughStep {
   confidence?: string;
   isPinned?: boolean;
   color: string;
+  sameLocationAsPrev: boolean;
 }
 
 // Known areas likely to have Ring/security cameras along her path
@@ -139,6 +140,7 @@ export default function WalkthroughPage() {
               sourceUrl: e.source_url || undefined,
               isPinned: e.is_pinned,
               color: typeColors[e.event_type] || "#6b7280",
+              sameLocationAsPrev: false,
             });
           });
 
@@ -162,8 +164,18 @@ export default function WalkthroughPage() {
           (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
         );
 
-        // Re-index
-        allSteps.forEach((s, i) => (s.index = i));
+        // Re-index and mark same-location steps
+        allSteps.forEach((s, i) => {
+          s.index = i;
+          if (i > 0) {
+            const prev = allSteps[i - 1];
+            s.sameLocationAsPrev =
+              Math.abs(s.lat - prev.lat) < 0.001 &&
+              Math.abs(s.lng - prev.lng) < 0.001;
+          } else {
+            s.sameLocationAsPrev = false;
+          }
+        });
 
         // Add evidence gap step at the end
         if (allSteps.length > 0) {
@@ -180,6 +192,7 @@ export default function WalkthroughPage() {
             timeLabel: "After " + last.timeLabel,
             type: "gap",
             color: "#f97316",
+            sameLocationAsPrev: true,
           });
         }
 
@@ -322,70 +335,71 @@ export default function WalkthroughPage() {
         <div className="w-[400px] min-w-[360px] border-r border-[#2a2a40] flex flex-col">
           {step && (
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Step type badge */}
-              <div className="flex items-center gap-2 mb-4">
+              {/* Step number + type */}
+              <div className="flex items-center gap-3 mb-5">
                 <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: step.color }}
-                />
-                <span
-                  className="text-xs font-bold uppercase tracking-wider"
-                  style={{ color: step.color }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-xl font-black border-2"
+                  style={{ backgroundColor: step.color + "20", borderColor: step.color, color: step.color }}
                 >
-                  {step.type === "gap" ? "Evidence Gap" : step.type === "sighting" ? "Sighting" : "Event"}
-                </span>
-                {step.isPinned && (
-                  <span className="text-[10px] bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full font-bold">
-                    KEY EVENT
-                  </span>
-                )}
+                  {step.index + 1}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: step.color }}
+                    >
+                      {step.type === "gap" ? "Evidence Gap" : step.type === "sighting" ? "Sighting" : "Event"}
+                    </span>
+                    {step.isPinned && (
+                      <span className="text-[10px] bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full font-bold">
+                        KEY
+                      </span>
+                    )}
+                    {step.sameLocationAsPrev && step.type !== "gap" && (
+                      <span className="text-[10px] bg-[#2a2a40] text-[#8888a0] px-2 py-0.5 rounded-full">
+                        Same Location
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[#8888a0] text-xs mt-0.5">{step.confidence || ""}</div>
+                </div>
               </div>
 
-              {/* Time */}
-              <div className="text-2xl font-bold mb-1">{step.timeLabel}</div>
+              {/* Time — BIG */}
+              <div className="text-3xl font-black mb-2 tracking-tight">{step.timeLabel}</div>
 
-              {/* Title */}
-              <h2 className="text-xl font-bold mb-4 leading-tight">
+              {/* Title — BIG */}
+              <h2 className="text-2xl font-bold mb-4 leading-tight">
                 {step.title}
               </h2>
 
-              {/* Description */}
-              <p className="text-[#a0a0b0] text-sm leading-relaxed mb-6">
+              {/* Description — readable */}
+              <p className="text-[#c0c0d0] text-base leading-relaxed mb-6">
                 {step.description}
               </p>
 
-              {/* Details */}
+              {/* Key details — prominent cards */}
               <div className="space-y-3">
                 {step.clothing && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-3">
-                    <div className="text-[10px] text-[#8888a0] uppercase tracking-wider mb-1">Clothing</div>
-                    <div className="text-sm">{step.clothing}</div>
+                  <div className="bg-[#1c1c2e] rounded-lg p-4 border-l-4 border-yellow-500">
+                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">Last Wearing</div>
+                    <div className="text-base font-medium">{step.clothing}</div>
                   </div>
                 )}
                 {step.demeanor && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-3">
-                    <div className="text-[10px] text-[#8888a0] uppercase tracking-wider mb-1">Demeanor</div>
-                    <div className="text-sm text-yellow-400">{step.demeanor}</div>
-                  </div>
-                )}
-                {step.confidence && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-3">
-                    <div className="text-[10px] text-[#8888a0] uppercase tracking-wider mb-1">Confidence</div>
-                    <div className="text-sm">{step.confidence}</div>
+                  <div className="bg-[#1c1c2e] rounded-lg p-4 border-l-4 border-orange-500">
+                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">State / Demeanor</div>
+                    <div className="text-base font-medium text-orange-400">{step.demeanor}</div>
                   </div>
                 )}
                 {step.source && (
-                  <div className="bg-[#1c1c2e] rounded-lg p-3">
-                    <div className="text-[10px] text-[#8888a0] uppercase tracking-wider mb-1">Source</div>
+                  <div className="bg-[#1c1c2e] rounded-lg p-4">
+                    <div className="text-[11px] text-[#8888a0] uppercase tracking-wider mb-1">Source</div>
                     <div className="text-sm">
                       {step.sourceUrl ? (
-                        <a
-                          href={step.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          {step.source}
+                        <a href={step.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">
+                          {step.source} ↗
                         </a>
                       ) : (
                         step.source
@@ -393,29 +407,29 @@ export default function WalkthroughPage() {
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* Coordinates */}
-                <div className="bg-[#1c1c2e] rounded-lg p-3">
-                  <div className="text-[10px] text-[#8888a0] uppercase tracking-wider mb-1">Coordinates</div>
-                  <div className="text-sm font-mono">
-                    {step.lat.toFixed(5)}, {step.lng.toFixed(5)}
-                  </div>
+              {/* Location footer */}
+              <div className="mt-6 pt-4 border-t border-[#2a2a40] flex items-center justify-between">
+                <div className="text-xs font-mono text-[#555570]">
+                  {step.lat.toFixed(5)}, {step.lng.toFixed(5)}
+                </div>
+                <div className="flex gap-3">
                   <a
                     href={`https://www.google.com/maps/@${step.lat},${step.lng},18z`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                    className="text-xs text-blue-400 hover:text-blue-300"
                   >
-                    Open in Google Maps
+                    Maps ↗
                   </a>
-                  {" · "}
                   <a
                     href={`https://www.google.com/maps/@${step.lat},${step.lng},3a,75y,90t/data=!3m6!1e1!3m4!1s0x0:0x0!2e0!7i16384!8i8192`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-blue-400 hover:text-blue-300"
                   >
-                    Street View
+                    Street View ↗
                   </a>
                 </div>
               </div>

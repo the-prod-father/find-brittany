@@ -73,16 +73,10 @@ export default function RootLayout({
                   Investigate
                 </a>
                 <a
-                  href="/map"
+                  href="/evidence"
                   className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
                 >
-                  Map
-                </a>
-                <a
-                  href="/timeline"
-                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
-                >
-                  Timeline
+                  Evidence
                 </a>
                 <a
                   href="/submit"

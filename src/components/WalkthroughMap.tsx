@@ -18,6 +18,7 @@ interface Step {
   timeLabel: string;
   type: string;
   color: string;
+  sameLocationAsPrev: boolean;
 }
 
 interface CanvassZone {
@@ -54,13 +55,15 @@ function MapContent({
     const step = steps[currentStep];
     if (!step) return;
 
-    map.panTo({ lat: step.lat, lng: step.lng });
+    // Skip pan if same location as previous step
+    if (!step.sameLocationAsPrev || prevStep.current === -1) {
+      map.panTo({ lat: step.lat, lng: step.lng });
 
-    // Zoom in more for sightings, out for gap
-    if (step.type === "gap") {
-      map.setZoom(15);
-    } else if (prevStep.current !== currentStep) {
-      map.setZoom(17);
+      if (step.type === "gap") {
+        map.setZoom(15);
+      } else {
+        map.setZoom(17);
+      }
     }
 
     prevStep.current = currentStep;
