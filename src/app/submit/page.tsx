@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import exifr from "exifr";
+import AddressSearch from "@/components/AddressSearch";
 
 // Client-side Supabase for direct file uploads (bypasses Vercel 4.5MB limit)
 const supabase = createClient(
@@ -475,6 +476,24 @@ export default function SubmitTipPage() {
             </div>
           </div>
         )}
+
+        {/* Location search */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <label className="block text-sm text-gray-700 font-medium mb-1">
+            Where was this captured?
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Start typing an address — especially helpful for Ring camera footage
+          </p>
+          <AddressSearch
+            onSelect={({ address, lat, lng }) => {
+              setDetectedLat(lat.toFixed(6));
+              setDetectedLng(lng.toFixed(6));
+              setDetectedLocation(address);
+            }}
+            placeholder="e.g., 123 McCouns Lane, Oyster Bay, NY"
+          />
+        </div>
 
         {/* Optional note */}
         <div className="bg-white border border-gray-200 rounded-xl p-5">

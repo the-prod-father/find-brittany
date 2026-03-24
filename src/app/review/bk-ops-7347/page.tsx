@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Evidence, Tip } from "@/lib/types";
+import AddressSearch from "@/components/AddressSearch";
 
 export default function AdminReviewPage() {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
@@ -229,6 +230,21 @@ export default function AdminReviewPage() {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                               />
                             </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Location (search address)</label>
+                              <AddressSearch
+                                defaultValue={editForm.location_description}
+                                placeholder="Type address to auto-fill GPS..."
+                                onSelect={({ address, lat, lng }) => {
+                                  setEditForm({
+                                    ...editForm,
+                                    latitude: lat.toFixed(6),
+                                    longitude: lng.toFixed(6),
+                                    location_description: address,
+                                  });
+                                }}
+                              />
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                               <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">Latitude</label>
@@ -248,15 +264,6 @@ export default function AdminReviewPage() {
                                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 />
                               </div>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Location description</label>
-                              <input
-                                value={editForm.location_description}
-                                onChange={(e) => setEditForm({ ...editForm, location_description: e.target.value })}
-                                placeholder="e.g., Backyard on McCouns Lane"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                              />
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">Capture date/time</label>
