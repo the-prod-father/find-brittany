@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -85,6 +86,7 @@ export default function RootLayout({
         </nav>
 
         <main>{children}</main>
+        <Analytics />
 
         {/* Footer — mobile-optimized */}
         <footer className="border-t border-gray-200 bg-gray-50 mt-auto py-6 sm:py-8 px-4">
