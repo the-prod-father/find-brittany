@@ -105,7 +105,7 @@ export default function RootLayout({
               </a>
             </div>
             <p className="text-xs text-gray-400">
-              Built by Why Not Us Labs
+              Built by the Oyster Bay community to help bring Brittany home
             </p>
           </div>
         </footer>
