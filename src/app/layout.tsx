@@ -61,6 +61,12 @@ export default function RootLayout({
                   Home
                 </a>
                 <a
+                  href="/walkthrough"
+                  className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
+                >
+                  Walkthrough
+                </a>
+                <a
                   href="/investigate"
                   className="px-3 py-2 text-sm rounded-md hover:bg-[#1c1c2e] transition-colors"
                 >
