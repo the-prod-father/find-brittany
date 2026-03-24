@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Sighting, TimelineEvent } from "@/lib/types";
+import type { Sighting, TimelineEvent, Evidence } from "@/lib/types";
+import CaseIntelligence from "@/components/CaseIntelligence";
 
 const InvestigationMap = dynamic(
   () => import("@/components/InvestigationMap"),
@@ -36,25 +37,32 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   other: "Event",
 };
 
+type PanelView = "timeline" | "intel";
+
 export default function InvestigatePage() {
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const [panelView, setPanelView] = useState<PanelView>("timeline");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const [timelineRes, sightingsRes] = await Promise.all([
+        const [timelineRes, sightingsRes, evidenceRes] = await Promise.all([
           fetch("/api/timeline"),
           fetch("/api/sightings"),
+          fetch("/api/evidence"),
         ]);
         const timelineData = await timelineRes.json();
         const sightingsData = await sightingsRes.json();
+        const evidenceData = await evidenceRes.json();
 
         setTimelineEvents(timelineData.events || []);
         setSightings(sightingsData.sightings || []);
+        setEvidence(evidenceData.evidence || []);
       } catch (err) {
         console.error("Failed to load investigation data:", err);
       } finally {
