@@ -267,6 +267,40 @@ export default function CommandCenter() {
         </div>
       )}
 
+      {/* Bottom-left: Video evidence panel */}
+      {evidence.filter((e) => e.file_url && e.mime_type?.startsWith("video")).length > 0 && (
+        <div className="absolute bottom-4 left-4 z-10">
+          <details className="group">
+            <summary className="bg-white/95 backdrop-blur border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-xs font-medium text-gray-700 cursor-pointer list-none flex items-center gap-2">
+              🎥 Evidence Videos ({evidence.filter((e) => e.file_url && e.mime_type?.startsWith("video")).length})
+              <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="mt-2 bg-white/95 backdrop-blur border border-gray-200 rounded-lg shadow-lg p-3 space-y-3 max-h-[300px] overflow-y-auto" style={{ width: 320 }}>
+              {evidence
+                .filter((e) => e.file_url && e.mime_type?.startsWith("video"))
+                .map((e) => (
+                  <div key={e.id} className="space-y-1">
+                    <video
+                      src={e.file_url!}
+                      controls
+                      preload="metadata"
+                      className="w-full rounded"
+                      onLoadedData={(ev) => { (ev.target as HTMLVideoElement).currentTime = 1; }}
+                    />
+                    <div className="text-[11px] text-gray-700 font-medium">{e.title}</div>
+                    {e.location_description && (
+                      <div className="text-[10px] text-gray-500">📍 {e.location_description}</div>
+                    )}
+                    {e.capture_date && (
+                      <div className="text-[10px] text-gray-500">🕐 {new Date(e.capture_date).toLocaleString()}</div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </details>
+        </div>
+      )}
+
       {/* Bottom-right: AI Chat */}
       <CaseChat
         className="absolute bottom-4 right-4 z-10"
