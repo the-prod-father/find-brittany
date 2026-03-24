@@ -54,16 +54,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Auto-transcribe video files (fire and forget)
-    if (body.mime_type?.startsWith("video") && body.file_url) {
-      const baseUrl = `https://${request.headers.get("host") || "find-brittany.vercel.app"}`;
-      fetch(`${baseUrl}/api/transcribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evidence_id: data.id, file_url: body.file_url }),
-      }).catch(() => {});
-    }
-
     // Send email notification
     if (process.env.RESEND_API_KEY) {
       try {

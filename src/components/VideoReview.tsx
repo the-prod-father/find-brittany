@@ -58,14 +58,20 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
 
   const transcript = parseTranscript(localNotes);
   const frames = parseFrameAnalysis(localNotes);
-  const hasTranscript = transcript.length > 0;
+  const hasTranscript = transcript.length > 0 || localNotes?.includes("AUDIO TRANSCRIPTION");
   const hasAI = frames.length > 0;
-  const hasTranscriptSection = localNotes?.includes("AUDIO TRANSCRIPTION") || false;
   const fullTranscriptText = localNotes?.split("--- AUDIO TRANSCRIPTION ---")[1]?.split("Timestamped:")[0]?.trim();
 
-  // Auto-run AI analysis if not done yet
+  // Auto-run transcription and analysis on mount if not done yet
+  const autoRanRef = useRef(false);
   useEffect(() => {
-    if (!hasAI && !analyzing && ev.file_url) {
+    if (autoRanRef.current) return;
+    autoRanRef.current = true;
+
+    if (!hasTranscript && ev.file_url && ev.mime_type?.startsWith("video")) {
+      runTranscription();
+    }
+    if (!hasAI && ev.file_url && ev.mime_type?.startsWith("video")) {
       runAnalysis();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -258,14 +264,22 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-xs text-gray-500 mb-3">AI hasn't analyzed this video yet</p>
-                <button
-                  onClick={runAnalysis}
-                  disabled={analyzing}
-                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 disabled:bg-gray-300"
-                >
-                  {analyzing ? "Analyzing 5 frames..." : "Analyze with AI"}
-                </button>
+                {analyzing ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500" />
+                    Analyzing 5 frames...
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-400 mb-3">Analysis will run automatically</p>
+                    <button
+                      onClick={runAnalysis}
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800"
+                    >
+                      Retry Analysis
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -296,26 +310,26 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
                   </div>
                 ))}
               </div>
-            ) : hasTranscriptSection && fullTranscriptText ? (
+            ) : fullTranscriptText ? (
               <p className="text-xs text-gray-700 leading-relaxed">{fullTranscriptText}</p>
-            ) : hasTranscriptSection ? (
-              <div className="text-center py-4">
-                <p className="text-xs text-gray-400">No speech detected in this video.</p>
-              </div>
-            ) : transcribing ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Transcribing audio...</p>
-              </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-xs text-gray-400 mb-3">Transcription processing...</p>
-                <button
-                  onClick={runTranscription}
-                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800"
-                >
-                  Transcribe Now
-                </button>
+                {transcribing ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500" />
+                    Transcribing audio...
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-400 mb-3">Transcription will run automatically</p>
+                    <button
+                      onClick={runTranscription}
+                      className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800"
+                    >
+                      Retry Transcription
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
