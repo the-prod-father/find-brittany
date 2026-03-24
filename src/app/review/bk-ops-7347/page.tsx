@@ -14,6 +14,8 @@ export default function AdminReviewPage() {
   const [saving, setSaving] = useState(false);
   const [aiQueryId, setAiQueryId] = useState<string | null>(null);
   const [analyzingVideoId, setAnalyzingVideoId] = useState<string | null>(null);
+  const [transcribingId, setTranscribingId] = useState<string | null>(null);
+  const [transcriptions, setTranscriptions] = useState<Record<string, string>>({});
   const [videoAnalysis, setVideoAnalysis] = useState<Record<string, Array<{ timestamp_label: string; description: string }>>>({});
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState("");
@@ -173,6 +175,30 @@ export default function AdminReviewPage() {
       console.error("Video analysis error:", err);
     } finally {
       setAnalyzingVideoId(null);
+    }
+  }
+
+  async function transcribeAudio(ev: Evidence) {
+    if (!ev.file_url) return;
+    setTranscribingId(ev.id);
+    try {
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evidence_id: ev.id, file_url: ev.file_url }),
+      });
+      if (res.ok) {
+        const { text } = await res.json();
+        setTranscriptions((prev) => ({ ...prev, [ev.id]: text }));
+        // Refresh evidence
+        const evRes = await fetch("/api/evidence");
+        const evData = await evRes.json();
+        setEvidence(evData.evidence || []);
+      }
+    } catch (err) {
+      console.error("Transcription error:", err);
+    } finally {
+      setTranscribingId(null);
     }
   }
 
@@ -533,15 +559,34 @@ export default function AdminReviewPage() {
                                 Ask AI
                               </button>
                               {ev.mime_type?.startsWith("video") && (
-                                <button
-                                  onClick={() => analyzeFullVideo(ev)}
-                                  disabled={analyzingVideoId === ev.id}
-                                  className="px-3 py-1.5 border border-purple-300 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-50 disabled:opacity-50"
-                                >
-                                  {analyzingVideoId === ev.id ? "Analyzing 5 frames..." : "Analyze Full Video"}
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => analyzeFullVideo(ev)}
+                                    disabled={analyzingVideoId === ev.id}
+                                    className="px-3 py-1.5 border border-purple-300 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-50 disabled:opacity-50"
+                                  >
+                                    {analyzingVideoId === ev.id ? "Analyzing frames..." : "Analyze Video"}
+                                  </button>
+                                  <button
+                                    onClick={() => transcribeAudio(ev)}
+                                    disabled={transcribingId === ev.id}
+                                    className="px-3 py-1.5 border border-green-300 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 disabled:opacity-50"
+                                  >
+                                    {transcribingId === ev.id ? "Transcribing..." : "Transcribe Audio"}
+                                  </button>
+                                </>
                               )}
                             </div>
+
+                            {/* Audio transcription */}
+                            {(transcriptions[ev.id] || (ev.reviewer_notes && ev.reviewer_notes.includes("AUDIO TRANSCRIPTION"))) && (
+                              <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-green-800 uppercase mb-2">Audio Transcription</div>
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {transcriptions[ev.id] || ev.reviewer_notes?.split("--- AUDIO TRANSCRIPTION ---")[1]?.split("---")[0]?.trim() || "No speech detected."}
+                                </p>
+                              </div>
+                            )}
 
                             {/* Video frame-by-frame analysis */}
                             {(videoAnalysis[ev.id] || (ev.reviewer_notes && ev.reviewer_notes.includes("[0:"))) && (
