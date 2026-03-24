@@ -69,6 +69,12 @@ export default function RootLayout({
                   Investigation Map
                 </a>
                 <a
+                  href="/timeline"
+                  className="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Timeline
+                </a>
+                <a
                   href="tel:5165737347"
                   className="px-2 sm:px-3 py-2 text-xs sm:text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 hidden sm:block"
                 >

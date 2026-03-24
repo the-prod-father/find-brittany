@@ -1,239 +1,146 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import type { TimelineEvent } from "@/lib/types";
 
-interface TimelineEvent {
-  id: string;
-  date: string;
-  time: string;
-  title: string;
-  description: string;
-  location?: string;
-  source?: string;
-  type: "sighting" | "police_action" | "search_effort" | "media" | "other";
-}
-
-// Seed data with investigation events
-const TIMELINE_EVENTS: TimelineEvent[] = [
-  {
-    id: "1",
-    date: "March 20, 2026",
-    time: "8:00 PM",
-    title: "Brittany exits moving vehicle",
-    description:
-      "Brittany is observed exiting a vehicle. The circumstances and exact location of this sighting are under investigation.",
-    location: "Oyster Bay vicinity",
-    source: "Witness report",
-    type: "other",
-  },
-  {
-    id: "2",
-    date: "March 20, 2026",
-    time: "8:14 PM",
-    title: "Last confirmed sighting — McCouns Lane",
-    description:
-      "Final confirmed sighting of Brittany. She was last seen on McCouns Lane in Oyster Bay. This marks the critical point in the investigation timeline.",
-    location: "McCouns Lane, Oyster Bay, NY",
-    source: "Witness observation",
-    type: "sighting",
-  },
-  {
-    id: "3",
-    date: "March 20, 2026",
-    time: "8:30 PM",
-    title: "Reported missing to police",
-    description:
-      "Brittany's disappearance was reported to Nassau County Police Department. An investigation was immediately initiated.",
-    location: "Nassau County Police Department",
-    source: "Police dispatch",
-    type: "police_action",
-  },
-  {
-    id: "4",
-    date: "March 20, 2026",
-    time: "~9:00 PM",
-    title: "Helicopter and drone search launched",
-    description:
-      "Search and rescue operations began with helicopter and drone deployment to search the surrounding areas. Ground crews were also deployed.",
-    location: "Oyster Bay and surrounding areas",
-    source: "NCPD / Search & Rescue",
-    type: "search_effort",
-  },
-  {
-    id: "5",
-    date: "March 22, 2026",
-    time: "Unknown",
-    title: "News 12 coverage — family pleads for help",
-    description:
-      "The case received media coverage on News 12. Brittany's family made a public plea for information about her whereabouts, urging anyone with information to come forward.",
-    location: "Media broadcast",
-    source: "News 12 New York",
-    type: "media",
-  },
-];
-
-const EVENT_TYPE_CONFIG = {
-  sighting: {
-    color: "#ef4444", // red-500
-    label: "Sighting",
-    bgClass: "bg-red-500 bg-opacity-10",
-    borderClass: "border-red-500 border-opacity-30",
-  },
-  police_action: {
-    color: "#3b82f6", // blue-500
-    label: "Police Action",
-    bgClass: "bg-blue-500 bg-opacity-10",
-    borderClass: "border-blue-500 border-opacity-30",
-  },
-  search_effort: {
-    color: "#22c55e", // green-500
-    label: "Search Effort",
-    bgClass: "bg-green-500 bg-opacity-10",
-    borderClass: "border-green-500 border-opacity-30",
-  },
-  media: {
-    color: "#a855f7", // purple-500
-    label: "Media",
-    bgClass: "bg-purple-500 bg-opacity-10",
-    borderClass: "border-purple-500 border-opacity-30",
-  },
-  other: {
-    color: "#6b7280", // gray-500
-    label: "Other",
-    bgClass: "bg-gray-500 bg-opacity-10",
-    borderClass: "border-gray-500 border-opacity-30",
-  },
+const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+  sighting: { label: "Sighting", icon: "👁", color: "#ef4444" },
+  police_action: { label: "Police", icon: "🚔", color: "#3b82f6" },
+  search_effort: { label: "Search", icon: "🔦", color: "#22c55e" },
+  media: { label: "News", icon: "📰", color: "#a855f7" },
+  tip: { label: "Tip", icon: "💡", color: "#eab308" },
+  evidence: { label: "Evidence", icon: "📎", color: "#f97316" },
+  other: { label: "Event", icon: "📌", color: "#6b7280" },
 };
 
 export default function TimelinePage() {
-  const sortedEvents = useMemo(() => {
-    return [...TIMELINE_EVENTS].sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
-      return dateA.getTime() - dateB.getTime();
-    });
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/timeline")
+      .then((r) => r.json())
+      .then((d) => setEvents(d.events || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+  );
+
+  // Group by date
+  const grouped: Record<string, TimelineEvent[]> = {};
+  for (const e of sorted) {
+    const dateKey = new Date(e.event_date).toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+    if (!grouped[dateKey]) grouped[dateKey] = [];
+    grouped[dateKey].push(e);
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Investigation Timeline
-          </h1>
-          <p className="text-lg text-gray-500">
-            Critical events in the search for Brittany Kritis-Garip
-          </p>
-        </div>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Investigation Timeline</h1>
+        <p className="text-gray-500">
+          Everything we know, in order. Updated as new information comes in.
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {events.length} events · Last updated {new Date().toLocaleDateString()}
+        </p>
+      </div>
 
-        {/* Timeline Legend */}
-        <div className="mb-12 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {Object.entries(EVENT_TYPE_CONFIG).map(([type, config]) => (
-            <div
-              key={type}
-              className="flex items-center gap-2 p-2 rounded-md text-xs font-medium"
-            >
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: config.color }}
-              ></div>
-              <span className="text-gray-700">{config.label}</span>
-            </div>
-          ))}
-        </div>
+      {Object.entries(grouped).map(([date, dayEvents]) => (
+        <div key={date} className="mb-8">
+          {/* Date header */}
+          <div className="sticky top-14 sm:top-16 bg-white/95 backdrop-blur z-10 py-2 mb-3 border-b border-gray-100">
+            <h2 className="text-sm font-bold text-gray-900">{date}</h2>
+          </div>
 
-        {/* Vertical Timeline */}
-        <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#2a2a40] via-[#2a2a40] to-transparent transform -translate-x-1/2"></div>
-
-          {/* Timeline Events */}
-          <div className="space-y-8">
-            {sortedEvents.map((event, index) => {
-              const config = EVENT_TYPE_CONFIG[event.type];
-              const isLeft = index % 2 === 0;
-
+          {/* Events for this date */}
+          <div className="space-y-3">
+            {dayEvents.map((event) => {
+              const config = TYPE_CONFIG[event.event_type] || TYPE_CONFIG.other;
               return (
                 <div
                   key={event.id}
-                  className={`flex ${isLeft ? "flex-row" : "flex-row-reverse"}`}
+                  className={`border rounded-xl p-4 ${event.is_pinned ? "border-red-200 bg-red-50/50" : "border-gray-200"}`}
                 >
-                  {/* Left/Right Content Container */}
-                  <div className={`w-1/2 ${isLeft ? "pr-8" : "pl-8"}`}>
-                    {/* Card */}
-                    <div
-                      className={`${config.bgClass} ${config.borderClass} border rounded-lg p-5 backdrop-blur-sm hover:border-opacity-100 transition-all duration-300 hover:shadow-lg hover:shadow-black`}
-                    >
-                      {/* Header */}
-                      <div className="mb-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                              {config.label}
-                            </p>
-                            <p className="text-sm font-bold text-gray-900 mt-1">
-                              {event.title}
-                            </p>
-                          </div>
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
-                            style={{ backgroundColor: config.color }}
-                          ></div>
-                        </div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-lg mt-0.5">{config.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                          style={{ backgroundColor: config.color + "15", color: config.color }}
+                        >
+                          {config.label}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(event.event_date).toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        {event.is_pinned && (
+                          <span className="text-[10px] font-bold text-red-600 uppercase">Key Event</span>
+                        )}
                       </div>
 
-                      {/* Date and Time */}
-                      <div className="flex items-center gap-4 mb-3 pb-3 border-b border-gray-200">
-                        <p className="text-sm font-semibold text-gray-700">
-                          {event.date}
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">
+                        {event.title}
+                      </h3>
+
+                      {event.description && (
+                        <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                          {event.description}
                         </p>
-                        <p className="text-sm text-gray-600">{event.time}</p>
-                      </div>
+                      )}
 
-                      {/* Description */}
-                      <p className="text-sm text-gray-700 mb-3 leading-relaxed">
-                        {event.description}
-                      </p>
-
-                      {/* Location and Source */}
-                      <div className="space-y-2 text-xs">
-                        {event.location && (
-                          <div>
-                            <span className="text-gray-500">Location: </span>
-                            <span className="text-gray-600">
-                              {event.location}
-                            </span>
-                          </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        {event.location_description && (
+                          <span>📍 {event.location_description}</span>
                         )}
                         {event.source && (
-                          <div>
-                            <span className="text-gray-500">Source: </span>
-                            <span className="text-gray-600">
-                              {event.source}
-                            </span>
-                          </div>
+                          <span>
+                            Source:{" "}
+                            {event.source_url ? (
+                              <a
+                                href={event.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                              >
+                                {event.source}
+                              </a>
+                            ) : (
+                              event.source
+                            )}
+                          </span>
+                        )}
+                        {event.latitude && event.longitude && (
+                          <a
+                            href={`https://www.google.com/maps/@${event.latitude},${event.longitude},18z`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            View on map
+                          </a>
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Center Dot and Circle Marker (visible on md and up) */}
-                  <div className="w-0 flex justify-center">
-                    <div className="relative w-8 h-8 flex items-center justify-center">
-                      {/* Outer Circle Pulse */}
-                      <div
-                        className="absolute w-full h-full rounded-full animate-pulse"
-                        style={{
-                          backgroundColor: config.color,
-                          opacity: 0.2,
-                        }}
-                      ></div>
-                      {/* Center Dot */}
-                      <div
-                        className="relative w-4 h-4 rounded-full border-2 border-[#0f0f1a]"
-                        style={{ backgroundColor: config.color }}
-                      ></div>
                     </div>
                   </div>
                 </div>
@@ -241,34 +148,24 @@ export default function TimelinePage() {
             })}
           </div>
         </div>
+      ))}
 
-        {/* Bottom CTA */}
-        <div className="mt-16 text-center">
-          <div className="bg-white border border-gray-200 rounded-lg p-8 max-w-xl mx-auto">
-            <p className="text-gray-500 mb-4 text-sm">
-              Do you have information about Brittany's disappearance?
-            </p>
-            <a
-              href="tel:5165737347"
-              className="inline-block bg-red-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-red-700 transition-colors mb-3"
-            >
-              Call Nassau County Police
-            </a>
-            <p className="text-gray-400 text-sm">
-              516-573-7347 • Available 24/7
-            </p>
-          </div>
-        </div>
-
-        {/* Timeline Info */}
-        <div className="mt-12 text-center text-gray-500 text-sm max-w-2xl mx-auto">
-          <p>
-            This timeline represents key events in the investigation of
-            Brittany Kritis-Garip's disappearance. Information is updated as
-            the investigation progresses. If you have additional information
-            about any of these events or other relevant details, please contact
-            law enforcement immediately.
-          </p>
+      {/* Bottom CTA */}
+      <div className="mt-12 text-center border border-gray-200 rounded-xl p-6">
+        <p className="text-gray-500 text-sm mb-3">Have information about Brittany?</p>
+        <div className="flex justify-center gap-3">
+          <a
+            href="/submit"
+            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors"
+          >
+            Upload Evidence
+          </a>
+          <a
+            href="tel:5165737347"
+            className="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            Call 516-573-7347
+          </a>
         </div>
       </div>
     </div>
