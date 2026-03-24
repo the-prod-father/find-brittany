@@ -84,21 +84,32 @@ export default function EvidencePage() {
                 )}
               </div>
 
-              {/* Quality score */}
-              <div className="mt-4 flex items-center gap-3">
-                <div
-                  className="px-3 py-1.5 rounded-lg text-sm font-black"
-                  style={{ backgroundColor: q.color + "20", color: q.color, border: `1px solid ${q.color}40` }}
-                >
-                  {q.label} — {q.score}/100
+              {/* Quality score + download */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="px-3 py-1.5 rounded-lg text-sm font-black"
+                    style={{ backgroundColor: q.color + "20", color: q.color, border: `1px solid ${q.color}40` }}
+                  >
+                    {q.label} — {q.score}/100
+                  </div>
+                  <div className="text-xs text-gray-500 hidden sm:block">
+                    {q.score >= 80
+                      ? "High investigative value"
+                      : q.score >= 50
+                        ? "Good evidence — some metadata present"
+                        : "Needs more data"}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500">
-                  {q.score >= 80
-                    ? "High investigative value — has media + location + timestamp"
-                    : q.score >= 50
-                      ? "Good evidence — some metadata present"
-                      : "Needs more data — location or timestamp missing"}
-                </div>
+                {selected.file_url && (
+                  <a
+                    href={selected.file_url}
+                    download={selected.original_filename || selected.title}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    Download
+                  </a>
+                )}
               </div>
             </div>
 
