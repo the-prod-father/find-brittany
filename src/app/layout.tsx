@@ -2,14 +2,29 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Find Brittany Kritis-Garip | Investigation Tracker",
+  title: "Find Brittany Kritis-Garip | Missing from Oyster Bay, NY",
   description:
-    "Help find Brittany Kritis-Garip, missing since March 20, 2026 from Oyster Bay, Long Island. Submit tips, view the investigation map, and follow the timeline.",
+    "Brittany Kritis-Garip, 32, has been missing since March 20, 2026 from Oyster Bay, Long Island. 5'7\", 140 lbs, brown hair, brown eyes. If you have any information, call Nassau County PD: 516-573-7347.",
   openGraph: {
-    title: "Find Brittany Kritis-Garip | Missing from Oyster Bay, NY",
+    title: "MISSING — Brittany Kritis-Garip, 32, Oyster Bay NY",
     description:
-      "Brittany Kritis-Garip, 32, has been missing since March 20, 2026. Help us bring her home. Submit tips and evidence.",
+      "Last seen March 20, 2026 ~8PM on McCouns Lane. 5'7\", 140 lbs, brown hair, brown eyes. Black pants, black jacket with fur collar. Call 516-573-7347 with any information.",
     type: "website",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 1200,
+        alt: "Missing person poster for Brittany Kritis-Garip",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MISSING — Brittany Kritis-Garip, 32, Oyster Bay NY",
+    description:
+      "Last seen March 20, 2026 ~8PM. 5'7\", 140 lbs, brown hair. Call Nassau County PD: 516-573-7347.",
+    images: ["/og-image.jpg"],
   },
 };
 
