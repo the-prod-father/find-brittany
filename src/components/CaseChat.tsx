@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -168,8 +169,12 @@ export default function CaseChat({ className = "" }: { className?: string }) {
                   : "bg-gray-50 text-gray-800"
               }`}
             >
-              <div className="whitespace-pre-wrap leading-relaxed">
-                {msg.content}
+              <div className="leading-relaxed prose prose-sm prose-gray max-w-none [&_h2]:text-sm [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
                 {isStreaming && i === messages.length - 1 && msg.role === "assistant" && (
                   <span className="inline-block w-1.5 h-4 bg-gray-400 ml-0.5 animate-pulse" />
                 )}
