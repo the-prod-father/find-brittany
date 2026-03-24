@@ -54,6 +54,8 @@ export default function SubmitPage() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [detectedDate, setDetectedDate] = useState("");
+  const [detectedTime, setDetectedTime] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // EXIF extraction
@@ -80,6 +82,12 @@ export default function SubmitPage() {
               lat: metadata.latitude.toFixed(6),
               lng: metadata.longitude.toFixed(6),
             });
+          }
+          // Auto-fill date/time from EXIF
+          if (metadata.captureDate && !detectedDate) {
+            const d = new Date(metadata.captureDate);
+            setDetectedDate(d.toISOString().split("T")[0]);
+            setDetectedTime(d.toTimeString().slice(0, 5));
           }
         }
       } catch { /* no EXIF */ }
@@ -142,6 +150,32 @@ export default function SubmitPage() {
       if (!res.ok) throw new Error("Failed");
       const { analysis } = await res.json();
 
+      // Auto-fill date/time from AI if EXIF didn't have it
+      if (analysis.date && !detectedDate) {
+        // Parse formats like "03/20/2026", "03-20-2026", "2026-03-20"
+        const dateStr = analysis.date.replace(/\//g, "-");
+        const parts = dateStr.split("-");
+        if (parts.length === 3) {
+          const isoDate = parts[2].length === 4
+            ? `${parts[2]}-${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}`
+            : parts[0].length === 4
+              ? dateStr
+              : dateStr;
+          setDetectedDate(isoDate);
+        }
+      }
+      if (analysis.time && !detectedTime) {
+        const match = analysis.time.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+        if (match) {
+          let hours = parseInt(match[1]);
+          const mins = match[2];
+          const ampm = match[4]?.toUpperCase();
+          if (ampm === "PM" && hours < 12) hours += 12;
+          if (ampm === "AM" && hours === 12) hours = 0;
+          setDetectedTime(`${hours.toString().padStart(2, "0")}:${mins}`);
+        }
+      }
+
       setFiles((prev) =>
         prev.map((x, i) => (i === index ? { ...x, analyzing: false, aiAnalysis: analysis, frameUrl } : x))
       );
@@ -196,14 +230,21 @@ export default function SubmitPage() {
           body: JSON.stringify({
             tip_id: tipId,
             evidence_type: f.type,
-            title: f.file.name,
-            description: f.aiAnalysis?.notable_details || f.aiAnalysis?.people_description || note || "",
+            title: f.aiAnalysis?.camera_name
+              ? `${f.aiAnalysis.camera_name} — ${f.file.name}`
+              : f.file.name,
+            description: [
+              f.aiAnalysis?.environment,
+              f.aiAnalysis?.people_description,
+              f.aiAnalysis?.notable_details,
+              note,
+            ].filter(Boolean).join(". ") || "",
             file_path: `evidence/${filename}`,
             file_url: urlData.publicUrl,
             file_size_bytes: f.file.size,
             mime_type: f.file.type,
             original_filename: f.file.name,
-            capture_date: f.metadata?.captureDate || null,
+            capture_date: f.metadata?.captureDate || (detectedDate ? `${detectedDate}${detectedTime ? "T" + detectedTime + ":00" : ""}` : null),
             latitude: location.lat ? parseFloat(location.lat) : f.metadata?.latitude || null,
             longitude: location.lng ? parseFloat(location.lng) : f.metadata?.longitude || null,
             location_description: location.address || locationNote || null,
@@ -322,6 +363,27 @@ export default function SubmitPage() {
               </div>
             )}
           </div>
+
+          {/* Detected info from files */}
+          {(detectedDate || files.some(f => f.aiAnalysis)) && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <div className="text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">Extracted from your files</div>
+              <div className="flex flex-wrap gap-3 text-sm">
+                {detectedDate && (
+                  <div className="text-gray-600">Date: <span className="font-semibold text-gray-900">{detectedDate}</span></div>
+                )}
+                {detectedTime && (
+                  <div className="text-gray-600">Time: <span className="font-semibold text-gray-900">{detectedTime}</span></div>
+                )}
+                {files.some(f => f.aiAnalysis?.camera_name) && (
+                  <div className="text-gray-600">Camera: <span className="font-semibold text-gray-900">{files.find(f => f.aiAnalysis?.camera_name)?.aiAnalysis?.camera_name}</span></div>
+                )}
+                {files.some(f => f.aiAnalysis?.environment) && (
+                  <div className="text-gray-600">Scene: <span className="font-semibold text-gray-900">{files.find(f => f.aiAnalysis?.environment)?.aiAnalysis?.environment}</span></div>
+                )}
+              </div>
+            </div>
+          )}
 
           {files.length > 0 && (
             <button
