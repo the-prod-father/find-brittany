@@ -58,25 +58,19 @@ export default function RootLayout({
                   href="/walkthrough"
                   className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                 >
-                  Walkthrough
+                  Timeline
                 </a>
                 <a
-                  href="/investigate"
-                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                  href="tel:5165737347"
+                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors hidden sm:block"
                 >
-                  Investigate
-                </a>
-                <a
-                  href="/evidence"
-                  className="px-3 py-2 text-sm rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                >
-                  Evidence
+                  Call Police
                 </a>
                 <a
                   href="/submit"
                   className="px-3 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
                 >
-                  Submit Tip
+                  Upload Evidence
                 </a>
               </div>
             </div>

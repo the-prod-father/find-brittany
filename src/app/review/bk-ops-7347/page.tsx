@@ -12,6 +12,10 @@ export default function AdminReviewPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [aiQueryId, setAiQueryId] = useState<string | null>(null);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiAnswer, setAiAnswer] = useState("");
+  const [aiAsking, setAiAsking] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -100,6 +104,62 @@ export default function AdminReviewPage() {
     }
   }
 
+  async function askAI(evidenceId: string) {
+    if (!aiQuestion.trim()) return;
+    setAiAsking(true);
+    setAiAnswer("");
+
+    const ev = evidence.find((e) => e.id === evidenceId);
+    if (!ev?.file_url) { setAiAsking(false); return; }
+
+    try {
+      // Fetch the file and extract a frame for vision analysis
+      const res = await fetch(ev.file_url);
+      const blob = await res.blob();
+
+      let frameBlob: Blob;
+      if (ev.mime_type?.startsWith("video")) {
+        // Extract frame from video
+        frameBlob = await new Promise<Blob>((resolve, reject) => {
+          const video = document.createElement("video");
+          video.preload = "metadata";
+          video.muted = true;
+          video.crossOrigin = "anonymous";
+          video.onloadeddata = () => { video.currentTime = Math.min(1, video.duration * 0.1); };
+          video.onseeked = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d")!.drawImage(video, 0, 0);
+            canvas.toBlob((b) => { URL.revokeObjectURL(video.src); b ? resolve(b) : reject(); }, "image/jpeg", 0.9);
+          };
+          video.onerror = () => reject();
+          video.src = URL.createObjectURL(blob);
+        });
+      } else {
+        frameBlob = blob;
+      }
+
+      const formData = new FormData();
+      formData.append("frame", frameBlob, "frame.jpg");
+      formData.append("question", aiQuestion);
+
+      const analyzeRes = await fetch("/api/analyze", { method: "POST", body: formData });
+      const { analysis } = await analyzeRes.json();
+
+      setAiAnswer(
+        typeof analysis === "string"
+          ? analysis
+          : JSON.stringify(analysis, null, 2)
+      );
+    } catch (err) {
+      console.error(err);
+      setAiAnswer("Failed to analyze. Try again.");
+    } finally {
+      setAiAsking(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -114,12 +174,28 @@ export default function AdminReviewPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Case Review</h1>
-          <p className="text-gray-500 text-sm">
-            {pendingEvidence.length} evidence pending · {pendingTips.length} tips pending
-          </p>
+        {/* Header + Admin Nav */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Case Review</h1>
+            <p className="text-gray-500 text-sm">
+              {pendingEvidence.length} evidence pending · {pendingTips.length} tips pending
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <a href="/walkthrough" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+              Walkthrough
+            </a>
+            <a href="/evidence" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+              Evidence Gallery
+            </a>
+            <a href="/investigate" className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+              Intel View
+            </a>
+            <a href="/submit" className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">
+              Upload Evidence
+            </a>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -376,7 +452,52 @@ export default function AdminReviewPage() {
                                   Reset to Pending
                                 </button>
                               )}
+                              <button
+                                onClick={() => { setAiQueryId(aiQueryId === ev.id ? null : ev.id); setAiQuestion(""); setAiAnswer(""); }}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium ${aiQueryId === ev.id ? "bg-blue-600 text-white" : "border border-blue-300 text-blue-700 hover:bg-blue-50"}`}
+                              >
+                                Ask AI
+                              </button>
                             </div>
+
+                            {/* AI Query Panel */}
+                            {aiQueryId === ev.id && (
+                              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-blue-800 uppercase mb-2">Ask AI about this evidence</div>
+                                <div className="flex gap-2 mb-3">
+                                  <input
+                                    value={aiQuestion}
+                                    onChange={(e) => setAiQuestion(e.target.value)}
+                                    placeholder="e.g., What direction is the person moving? Are there any vehicles visible? What time does the overlay show?"
+                                    className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:border-blue-500 focus:outline-none"
+                                    onKeyDown={(e) => { if (e.key === "Enter") askAI(ev.id); }}
+                                  />
+                                  <button
+                                    onClick={() => askAI(ev.id)}
+                                    disabled={aiAsking || !aiQuestion.trim()}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:bg-blue-300"
+                                  >
+                                    {aiAsking ? "Thinking..." : "Ask"}
+                                  </button>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                  {["What details can you see?", "Is there a person visible?", "What time is shown?", "Describe the scene", "What should we investigate next?"].map((q) => (
+                                    <button
+                                      key={q}
+                                      onClick={() => { setAiQuestion(q); }}
+                                      className="px-2 py-1 bg-white border border-blue-200 rounded text-xs text-blue-700 hover:bg-blue-100"
+                                    >
+                                      {q}
+                                    </button>
+                                  ))}
+                                </div>
+                                {aiAnswer && (
+                                  <div className="bg-white border border-blue-100 rounded-lg p-3 text-sm text-gray-800 whitespace-pre-wrap">
+                                    {aiAnswer}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
