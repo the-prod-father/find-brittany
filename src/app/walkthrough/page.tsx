@@ -70,15 +70,78 @@ export default function InvestigationView() {
     load();
   }, []);
 
-  const filteredEvents = timelineEvents
-    .filter((e) => filterType === "all" || e.event_type === filterType)
-    .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+  // Build unified timeline: merge timeline_events + evidence into one sorted list
+  type UnifiedItem = {
+    id: string;
+    type: "event" | "evidence";
+    eventType: string;
+    date: string;
+    title: string;
+    description: string | null;
+    location: string | null;
+    lat: number | null;
+    lng: number | null;
+    source: string | null;
+    sourceUrl: string | null;
+    isPinned: boolean;
+    fileUrl?: string | null;
+    mimeType?: string | null;
+    evidenceType?: string;
+    color: string;
+  };
+
+  const unifiedTimeline: UnifiedItem[] = [
+    // Timeline events
+    ...timelineEvents.map((e) => ({
+      id: e.id,
+      type: "event" as const,
+      eventType: e.event_type,
+      date: e.event_date,
+      title: e.title,
+      description: e.description,
+      location: e.location_description,
+      lat: e.latitude,
+      lng: e.longitude,
+      source: e.source,
+      sourceUrl: e.source_url,
+      isPinned: e.is_pinned,
+      color: TYPE_COLORS[e.event_type] || "#6b7280",
+    })),
+    // Evidence items
+    ...evidence.map((e) => ({
+      id: `ev-${e.id}`,
+      type: "evidence" as const,
+      eventType: "evidence",
+      date: e.capture_date || e.created_at,
+      title: e.title,
+      description: e.description,
+      location: e.location_description,
+      lat: e.latitude,
+      lng: e.longitude,
+      source: e.submitted_by_name || "Anonymous",
+      sourceUrl: null,
+      isPinned: false,
+      fileUrl: e.file_url,
+      mimeType: e.mime_type,
+      evidenceType: e.evidence_type,
+      color: "#f97316",
+    })),
+  ];
+
+  const filteredItems = unifiedTimeline
+    .filter((item) => filterType === "all" || item.eventType === filterType)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const latestSighting = sightings
     .filter((s) => s.verified)
     .sort((a, b) => new Date(b.sighting_date).getTime() - new Date(a.sighting_date).getTime())[0];
 
   const videos = evidence.filter((e) => e.file_url && e.mime_type?.startsWith("video"));
+
+  // Filter map markers based on active filter
+  const filteredEvidence = filterType === "all" || filterType === "evidence" ? evidence : [];
+  const filteredSightings = filterType === "all" || filterType === "sighting" ? sightings : [];
+  const showMapTimelineMarkers = filterType === "all" || !["evidence", "sighting"].includes(filterType);
 
   if (loading) {
     return (
@@ -96,7 +159,7 @@ export default function InvestigationView() {
         <div className="p-4 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-bold text-gray-900">Investigation Timeline</h2>
-            <span className="text-xs text-gray-400">{filteredEvents.length} events</span>
+            <span className="text-xs text-gray-400">{filteredItems.length} events</span>
           </div>
 
           {/* Last Known */}
@@ -155,42 +218,61 @@ export default function InvestigationView() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {!showVideos ? (
-            /* Timeline events */
+            /* Unified timeline */
             <div className="relative">
               <div className="absolute left-5 top-0 bottom-0 w-px bg-gray-200" />
-              {filteredEvents.map((event) => {
-                const color = TYPE_COLORS[event.event_type] || "#6b7280";
-                const isSelected = selectedId === event.id;
+              {filteredItems.length === 0 && (
+                <div className="py-8 text-center text-gray-400 text-sm">No events to display</div>
+              )}
+              {filteredItems.map((item) => {
+                const isSelected = selectedId === item.id;
+                const isEvidence = item.type === "evidence";
                 return (
                   <div
-                    key={event.id}
+                    key={item.id}
                     className={`relative pl-10 pr-4 py-3 cursor-pointer border-l-2 transition-colors ${isSelected ? "bg-gray-50 border-l-red-500" : "border-l-transparent hover:bg-gray-50/50"}`}
-                    onClick={() => setSelectedId(isSelected ? null : event.id)}
+                    onClick={() => setSelectedId(isSelected ? null : item.id)}
                   >
                     <div
-                      className="absolute left-[14px] top-4 w-3 h-3 rounded-full border-2 border-white z-10"
-                      style={{ backgroundColor: color }}
+                      className={`absolute left-[14px] top-4 w-3 h-3 border-2 border-white z-10 ${isEvidence ? "rounded" : "rounded-full"}`}
+                      style={{ backgroundColor: item.color }}
                     />
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color }}>
-                        {TYPE_LABELS[event.event_type] || event.event_type}
+                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: item.color }}>
+                        {TYPE_LABELS[item.eventType] || item.eventType}
                       </span>
-                      {event.is_pinned && <span className="text-[9px] font-bold text-red-600">KEY</span>}
+                      {item.isPinned && <span className="text-[9px] font-bold text-red-600">KEY</span>}
+                      {isEvidence && <span className="text-[9px] text-gray-400">{item.evidenceType}</span>}
                     </div>
-                    <h3 className="text-sm font-semibold text-gray-900 leading-tight">{event.title}</h3>
-                    {isSelected && event.description && (
-                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">{event.description}</p>
+                    <h3 className="text-sm font-semibold text-gray-900 leading-tight">{item.title}</h3>
+
+                    {/* Evidence thumbnail */}
+                    {isSelected && isEvidence && item.fileUrl && item.mimeType?.startsWith("video") && (
+                      <video
+                        src={item.fileUrl}
+                        controls
+                        preload="metadata"
+                        className="w-full rounded mt-2"
+                        onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 1; }}
+                      />
+                    )}
+                    {isSelected && isEvidence && item.fileUrl && item.mimeType?.startsWith("image") && (
+                      <img src={item.fileUrl} alt={item.title} className="w-full rounded mt-2" />
+                    )}
+
+                    {isSelected && item.description && (
+                      <p className="text-xs text-gray-600 mt-1 leading-relaxed">{item.description}</p>
                     )}
                     <div className="flex gap-3 text-[10px] text-gray-400 mt-1">
-                      <span>{new Date(event.event_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                      <span>{new Date(event.event_date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
-                      {event.location_description && <span className="truncate">{event.location_description}</span>}
+                      <span>{new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                      <span>{new Date(item.date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
+                      {item.location && <span className="truncate">{item.location}</span>}
                     </div>
-                    {isSelected && event.source && (
+                    {isSelected && item.source && (
                       <div className="text-[10px] text-gray-400 mt-1">
-                        Source: {event.source_url ? (
-                          <a href={event.source_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{event.source}</a>
-                        ) : event.source}
+                        Source: {item.sourceUrl ? (
+                          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{item.source}</a>
+                        ) : item.source}
                       </div>
                     )}
                   </div>
@@ -244,10 +326,10 @@ export default function InvestigationView() {
       {/* Right — Map */}
       <div className="flex-1 md:h-auto h-[50vh] relative">
         <InvestigationMap
-          sightings={sightings}
-          timelineEvents={timelineEvents}
-          evidence={evidence}
-          showTimeCircles={true}
+          sightings={filteredSightings}
+          timelineEvents={showMapTimelineMarkers ? timelineEvents : []}
+          evidence={filteredEvidence}
+          showTimeCircles={filterType === "all" || filterType === "sighting"}
           onAreaClick={(lat, lng) => {
             setMapQuestion(`I clicked on coordinates ${lat.toFixed(5)}, ${lng.toFixed(5)} on the map. What's in this area? Any evidence, sightings, or points of interest nearby? What should someone look for here?`);
           }}
