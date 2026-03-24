@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Fetch failed: ${fileRes.status}` }, { status: 500 });
     }
 
-    // Get the blob and create a File
+    // Get the blob — Whisper needs .mp4 extension (not .mov)
     const blob = await fileRes.blob();
-    const file = new File([blob], "video.mp4", { type: "video/mp4" });
+    const file = new File([blob], "video.mp4", { type: "audio/mp4" });
 
     // Send to Whisper
     const transcription = await openai.audio.transcriptions.create({
