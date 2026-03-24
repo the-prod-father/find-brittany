@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, useRef } from "react";
+import exifr from "exifr";
 
 type EvidenceType = "photo" | "video" | "document" | "screenshot" | "audio" | "social_media_link" | "other";
+
+interface FileMetadata {
+  latitude?: number;
+  longitude?: number;
+  captureDate?: string;
+  make?: string;
+  model?: string;
+}
 
 interface FileUpload {
   file: File;
   type: EvidenceType;
   description: string;
   captureDate: string;
+  metadata?: FileMetadata;
 }
 
 export default function SubmitTipPage() {
@@ -35,7 +45,7 @@ export default function SubmitTipPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function addFile(file: File) {
+  async function addFile(file: File) {
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     let type: EvidenceType = "other";
     if (["jpg", "jpeg", "png", "heic", "webp"].includes(ext)) type = "photo";
@@ -43,9 +53,46 @@ export default function SubmitTipPage() {
     else if (["pdf", "doc", "docx", "txt"].includes(ext)) type = "document";
     else if (["mp3", "wav", "m4a"].includes(ext)) type = "audio";
 
+    // Extract EXIF/metadata (GPS, capture date, device info)
+    let metadata: FileMetadata = {};
+    try {
+      const exif = await exifr.parse(file, {
+        gps: true,
+        pick: ["DateTimeOriginal", "CreateDate", "GPSLatitude", "GPSLongitude", "Make", "Model"],
+      });
+      if (exif) {
+        metadata = {
+          latitude: exif.latitude,
+          longitude: exif.longitude,
+          captureDate: exif.DateTimeOriginal?.toISOString?.() || exif.CreateDate?.toISOString?.() || undefined,
+          make: exif.Make,
+          model: exif.Model,
+        };
+        // Auto-fill form location if not already set
+        if (metadata.latitude && metadata.longitude && !form.latitude && !form.longitude) {
+          updateForm("latitude", metadata.latitude.toFixed(6));
+          updateForm("longitude", metadata.longitude.toFixed(6));
+        }
+        // Auto-fill tip date if not already set
+        if (metadata.captureDate && !form.tip_date) {
+          const d = new Date(metadata.captureDate);
+          updateForm("tip_date", d.toISOString().split("T")[0]);
+          updateForm("tip_time", d.toTimeString().slice(0, 5));
+        }
+      }
+    } catch {
+      // Metadata extraction failed — not all files have EXIF
+    }
+
     setFiles((prev) => [
       ...prev,
-      { file, type, description: "", captureDate: "" },
+      {
+        file,
+        type,
+        description: "",
+        captureDate: metadata.captureDate?.split("T")[0] || "",
+        metadata,
+      },
     ]);
   }
 
@@ -97,6 +144,13 @@ export default function SubmitTipPage() {
         formData.append("title", fileUpload.file.name);
         if (fileUpload.captureDate) {
           formData.append("capture_date", fileUpload.captureDate);
+        }
+        // Include extracted GPS metadata
+        if (fileUpload.metadata?.latitude) {
+          formData.append("latitude", fileUpload.metadata.latitude.toString());
+        }
+        if (fileUpload.metadata?.longitude) {
+          formData.append("longitude", fileUpload.metadata.longitude.toString());
         }
         if (form.submitter_name) formData.append("submitted_by_name", form.submitter_name);
         if (form.submitter_email) formData.append("submitted_by_email", form.submitter_email);
@@ -388,6 +442,20 @@ export default function SubmitTipPage() {
                     <div className="text-xs text-[#555570]">
                       {(f.file.size / 1024 / 1024).toFixed(1)} MB
                     </div>
+                    {f.metadata && (f.metadata.latitude || f.metadata.captureDate || f.metadata.model) && (
+                      <div className="mt-1.5 p-2 bg-green-900/20 border border-green-800/30 rounded text-xs space-y-0.5">
+                        <div className="text-green-400 font-semibold text-[10px] uppercase tracking-wider">Metadata Extracted</div>
+                        {f.metadata.captureDate && (
+                          <div className="text-[#a0a0b0]">Captured: {new Date(f.metadata.captureDate).toLocaleString()}</div>
+                        )}
+                        {f.metadata.latitude && f.metadata.longitude && (
+                          <div className="text-[#a0a0b0]">GPS: {f.metadata.latitude.toFixed(5)}, {f.metadata.longitude.toFixed(5)}</div>
+                        )}
+                        {f.metadata.make && (
+                          <div className="text-[#a0a0b0]">Device: {f.metadata.make} {f.metadata.model || ""}</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
