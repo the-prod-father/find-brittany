@@ -312,8 +312,8 @@ export default function InvestigationMap({
         streetViewControl={true}
         fullscreenControl={true}
         zoomControl={true}
+        mapTypeId="satellite"
         style={{ width: "100%", height: "100%" }}
-        colorScheme="DARK"
       >
         <MapContent
           sightings={sightings}
