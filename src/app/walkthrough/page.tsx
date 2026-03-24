@@ -457,7 +457,7 @@ export default function WalkthroughPage() {
                   </div>
                   <a
                     href="/submit"
-                    className="block mt-4 py-2 bg-orange-600 hover:bg-orange-700 rounded text-center text-sm font-semibold transition-colors"
+                    className="block mt-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded text-center text-sm font-semibold transition-colors"
                   >
                     Have footage from this area? Submit it
                   </a>

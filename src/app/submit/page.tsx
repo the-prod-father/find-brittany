@@ -335,7 +335,7 @@ export default function SubmitTipPage() {
           </button>
           <a
             href="/investigate"
-            className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors"
           >
             View Investigation
           </a>
@@ -517,7 +517,7 @@ export default function SubmitTipPage() {
         <button
           type="submit"
           disabled={submitting || isAnalyzing || (files.length === 0 && !note.trim())}
-          className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded-xl font-semibold text-lg transition-colors"
+          className="w-full py-4 bg-red-600 hover:bg-red-700 text-white disabled:bg-red-600/50 disabled:cursor-not-allowed rounded-xl font-semibold text-lg transition-colors"
         >
           {submitting
             ? "Submitting..."

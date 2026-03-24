@@ -281,7 +281,7 @@ export default function InvestigatePage() {
         <div className="p-3 border-t border-gray-200 bg-gray-50">
           <a
             href="/submit"
-            className="block w-full py-2.5 bg-red-600 hover:bg-red-700 rounded-lg font-semibold text-sm text-center transition-colors"
+            className="block w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold text-sm text-center transition-colors"
           >
             Submit a Tip
           </a>

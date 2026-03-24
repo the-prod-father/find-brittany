@@ -246,7 +246,7 @@ export default function EvidencePage() {
             <div className="text-4xl mb-4">📎</div>
             <h2 className="text-xl font-bold mb-2">No evidence yet</h2>
             <p className="text-gray-500 mb-6">Be the first to submit photos, videos, or other evidence.</p>
-            <a href="/submit" className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors">
+            <a href="/submit" className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors">
               Submit Evidence
             </a>
           </div>
