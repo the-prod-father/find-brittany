@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Evidence } from "@/lib/types";
 
 type Tab = "info" | "ai" | "transcript";
@@ -60,7 +60,15 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
   const frames = parseFrameAnalysis(localNotes);
   const hasTranscript = transcript.length > 0;
   const hasAI = frames.length > 0;
+  const hasTranscriptSection = localNotes?.includes("AUDIO TRANSCRIPTION") || false;
   const fullTranscriptText = localNotes?.split("--- AUDIO TRANSCRIPTION ---")[1]?.split("Timestamped:")[0]?.trim();
+
+  // Auto-run AI analysis if not done yet
+  useEffect(() => {
+    if (!hasAI && !analyzing && ev.file_url) {
+      runAnalysis();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function seekTo(seconds: number) {
     if (videoRef.current) {
@@ -288,17 +296,25 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
                   </div>
                 ))}
               </div>
-            ) : fullTranscriptText ? (
+            ) : hasTranscriptSection && fullTranscriptText ? (
               <p className="text-xs text-gray-700 leading-relaxed">{fullTranscriptText}</p>
+            ) : hasTranscriptSection ? (
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-400">No speech detected in this video.</p>
+              </div>
+            ) : transcribing ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mx-auto mb-2" />
+                <p className="text-xs text-gray-500">Transcribing audio...</p>
+              </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-xs text-gray-500 mb-3">No audio transcription yet</p>
+                <p className="text-xs text-gray-400 mb-3">Transcription processing...</p>
                 <button
                   onClick={runTranscription}
-                  disabled={transcribing}
-                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 disabled:bg-gray-300"
+                  className="px-4 py-2 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800"
                 >
-                  {transcribing ? "Transcribing audio..." : "Transcribe Audio"}
+                  Transcribe Now
                 </button>
               </div>
             )}
