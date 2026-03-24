@@ -35,7 +35,8 @@ function parseFrameAnalysis(notes: string | null): Array<{ time: string; descrip
   if (!notes) return [];
   const frames: Array<{ time: string; description: string }> = [];
   // Match [0:05] description pattern
-  const matches = notes.matchAll(/\[(\d+:\d+)\]\s*([^\[]*?)(?=\[\d+:\d+\]|--- AUDIO|$)/gs);
+  const regex = /\[(\d+:\d+)\]\s*([^\[]*?)(?=\[\d+:\d+\]|--- AUDIO|$)/g;
+  const matches = notes.matchAll(regex);
   for (const m of matches) {
     frames.push({ time: m[1], description: m[2].trim() });
   }
