@@ -1,0 +1,35 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# next.js
+/.next/
+/out/
+
+# env files
+.env
+.env.local
+.env*.local
+
+# debug
+npm-debug.log*
+
+# vercel
+.vercel
+
+# misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# large media files (store separately)
+*.MOV
+*.mov
+*.mp4
+
+# claude code memory
+.claude/
+
+# supabase CLI temp
+supabase/.temp/
