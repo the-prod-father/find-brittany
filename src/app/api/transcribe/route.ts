@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI, { toFile } from "openai";
+import OpenAI from "openai";
 import { createServiceClient } from "@/lib/supabase";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -12,51 +12,26 @@ export async function POST(request: NextRequest) {
     const { evidence_id, file_url } = body;
 
     if (!evidence_id || !file_url) {
-      return NextResponse.json(
-        { error: "evidence_id and file_url required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "evidence_id and file_url required" }, { status: 400 });
     }
 
-    // Fetch the video file
+    // Fetch video as a Response and pipe to Whisper
     const fileRes = await fetch(file_url);
     if (!fileRes.ok) {
-      return NextResponse.json(
-        { error: `Failed to fetch file: ${fileRes.status}` },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: `Fetch failed: ${fileRes.status}` }, { status: 500 });
     }
 
-    const arrayBuffer = await fileRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Convert to File object for OpenAI
-    const file = await toFile(buffer, "video.mp4", { type: "video/mp4" });
+    // Get the blob and create a File
+    const blob = await fileRes.blob();
+    const file = new File([blob], "video.mp4", { type: "video/mp4" });
 
     // Send to Whisper
     const transcription = await openai.audio.transcriptions.create({
       file,
       model: "whisper-1",
-      response_format: "verbose_json",
-      timestamp_granularities: ["segment"],
     });
 
-    const text = transcription.text || "No speech detected in this video.";
-    const segments = transcription.segments || [];
-
-    // Build transcript text
-    let transcriptText = `\n\n--- AUDIO TRANSCRIPTION ---\n${text}`;
-
-    if (segments.length > 0) {
-      transcriptText +=
-        "\n\nTimestamped:\n" +
-        segments
-          .map(
-            (s: { start: number; end: number; text: string }) =>
-              `[${Math.floor(s.start / 60)}:${Math.floor(s.start % 60).toString().padStart(2, "0")} - ${Math.floor(s.end / 60)}:${Math.floor(s.end % 60).toString().padStart(2, "0")}] ${s.text.trim()}`
-          )
-          .join("\n");
-    }
+    const text = transcription.text || "No speech detected.";
 
     // Save to evidence
     const supabase = createServiceClient();
@@ -66,22 +41,18 @@ export async function POST(request: NextRequest) {
       .eq("id", evidence_id)
       .single();
 
-    const existingNotes = existing?.reviewer_notes || "";
+    const notes = (existing?.reviewer_notes || "") + `\n\n--- AUDIO TRANSCRIPTION ---\n${text}`;
 
     await supabase
       .from("evidence")
-      .update({
-        reviewer_notes: existingNotes + transcriptText,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ reviewer_notes: notes, updated_at: new Date().toISOString() })
       .eq("id", evidence_id);
 
-    return NextResponse.json({ success: true, text, segments });
+    return NextResponse.json({ success: true, text });
   } catch (error) {
     console.error("Transcription error:", error);
-    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: `Transcription failed: ${message}` },
+      { error: error instanceof Error ? error.message : "Transcription failed" },
       { status: 500 }
     );
   }
