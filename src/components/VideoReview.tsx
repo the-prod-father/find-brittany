@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import type { Evidence } from "@/lib/types";
 
 type Tab = "info" | "ai" | "transcript";
@@ -87,48 +88,16 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
     if (!ev.file_url) return;
     setAnalyzing(true);
     try {
-      // Extract frames client-side
-      const res = await fetch(ev.file_url);
-      const blob = await res.blob();
-
-      const frames = await new Promise<Array<{ base64: string; timestamp_seconds: number }>>((resolve, reject) => {
-        const video = document.createElement("video");
-        video.preload = "metadata";
-        video.muted = true;
-        video.crossOrigin = "anonymous";
-        video.onloadedmetadata = async () => {
-          const duration = video.duration;
-          const result: Array<{ base64: string; timestamp_seconds: number }> = [];
-          const timestamps = Array.from({ length: 5 }, (_, i) => Math.max(0.5, (duration * (i + 0.5)) / 5));
-
-          for (const ts of timestamps) {
-            video.currentTime = ts;
-            await new Promise<void>((r) => { video.onseeked = () => r(); });
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.min(video.videoWidth, 1280);
-            canvas.height = Math.min(video.videoHeight, 720);
-            canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
-            result.push({ base64: canvas.toDataURL("image/jpeg", 0.8).split(",")[1], timestamp_seconds: ts });
-          }
-          URL.revokeObjectURL(video.src);
-          resolve(result);
-        };
-        video.onerror = () => reject();
-        video.src = URL.createObjectURL(blob);
-      });
-
+      // Send video URL to Gemini for full video analysis
       const analyzeRes = await fetch("/api/analyze-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evidence_id: ev.id, frames }),
+        body: JSON.stringify({ evidence_id: ev.id, file_url: ev.file_url }),
       });
 
       if (analyzeRes.ok) {
-        // Refetch notes
-        const evRes = await fetch(`/api/evidence`);
-        const evData = await evRes.json();
-        const updated = (evData.evidence || []).find((e: Evidence) => e.id === ev.id);
-        if (updated) setLocalNotes(updated.reviewer_notes);
+        const { analysis } = await analyzeRes.json();
+        setLocalNotes(analysis + (localNotes?.includes("AUDIO TRANSCRIPTION") ? "\n" + localNotes.substring(localNotes.indexOf("--- AUDIO")) : ""));
         setTab("ai");
       }
     } catch (err) {
@@ -244,23 +213,11 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
 
         {tab === "ai" && (
           <div>
-            {hasAI ? (
-              <div className="space-y-3">
-                {frames.map((frame, i) => (
-                  <div
-                    key={i}
-                    className="flex gap-2 cursor-pointer hover:bg-gray-50 rounded p-1.5 -mx-1.5 transition-colors"
-                    onClick={() => {
-                      const parts = frame.time.split(":");
-                      seekTo(parseInt(parts[0]) * 60 + parseInt(parts[1]));
-                    }}
-                  >
-                    <span className="font-mono text-[10px] text-blue-600 font-bold whitespace-nowrap mt-0.5 cursor-pointer hover:underline">
-                      {frame.time}
-                    </span>
-                    <p className="text-xs text-gray-700 leading-relaxed">{frame.description}</p>
-                  </div>
-                ))}
+            {hasAI || (localNotes && !localNotes.startsWith("\n\n--- AUDIO")) ? (
+              <div className="prose prose-xs prose-gray max-w-none text-xs [&_h2]:text-xs [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_strong]:text-gray-900">
+                <ReactMarkdown>
+                  {localNotes?.split("--- AUDIO TRANSCRIPTION ---")[0]?.trim() || ""}
+                </ReactMarkdown>
               </div>
             ) : (
               <div className="text-center py-4">

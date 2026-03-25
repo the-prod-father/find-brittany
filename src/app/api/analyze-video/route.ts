@@ -1,119 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServiceClient } from "@/lib/supabase";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+export const maxDuration = 60;
 
-// Analyze a single frame with Claude Vision
-async function analyzeFrame(
-  base64: string,
-  frameIndex: number,
-  totalFrames: number,
-  timestampSeconds: number
-) {
-  const minutes = Math.floor(timestampSeconds / 60);
-  const seconds = Math.floor(timestampSeconds % 60);
-  const timeLabel = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 200,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: "image/jpeg", data: base64 },
-          },
-          {
-            type: "text",
-            text: `Security camera frame ${frameIndex + 1}/${totalFrames} at ${timeLabel}. Missing persons investigation.
-
-Write 1-2 SHORT detective notes. Only note what matters:
-- People: count, clothing, direction of movement, behavior
-- Vehicles: type, color, direction
-- Overlay text: timestamp, camera name
-- Anything unusual or investigatively relevant
-
-Skip describing empty scenes. If nothing notable, say "Clear - no activity."
-Be terse. Example: "1 person, dark jacket, moving south on sidewalk. No vehicles."`,
-          },
-        ],
-      },
-    ],
-  });
-
-  const content = response.content[0];
-  return {
-    frame_index: frameIndex,
-    timestamp_seconds: timestampSeconds,
-    timestamp_label: timeLabel,
-    description: content.type === "text" ? content.text : "",
-  };
-}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { evidence_id, frames } = body;
+    const { evidence_id, file_url } = body;
 
-    // frames is an array of { base64: string, timestamp_seconds: number }
-    if (!evidence_id || !frames || !Array.isArray(frames) || frames.length === 0) {
+    if (!evidence_id || !file_url) {
       return NextResponse.json(
-        { error: "evidence_id and frames array required" },
+        { error: "evidence_id and file_url required" },
         { status: 400 }
       );
     }
 
-    const totalFrames = frames.length;
-    const results = [];
-
-    // Analyze frames sequentially (to avoid rate limits)
-    for (let i = 0; i < frames.length; i++) {
-      const frame = frames[i];
-      try {
-        const analysis = await analyzeFrame(
-          frame.base64,
-          i,
-          totalFrames,
-          frame.timestamp_seconds
-        );
-        results.push(analysis);
-      } catch (err) {
-        console.error(`Frame ${i} analysis failed:`, err);
-        results.push({
-          frame_index: i,
-          timestamp_seconds: frame.timestamp_seconds,
-          timestamp_label: `${Math.floor(frame.timestamp_seconds / 60)}:${Math.floor(frame.timestamp_seconds % 60).toString().padStart(2, "0")}`,
-          description: "Analysis failed for this frame.",
-        });
-      }
+    // Fetch the video file
+    const fileRes = await fetch(file_url);
+    if (!fileRes.ok) {
+      return NextResponse.json({ error: "Failed to fetch video" }, { status: 500 });
     }
 
-    // Save analysis to evidence reviewer_notes
+    const arrayBuffer = await fileRes.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const mimeType = fileRes.headers.get("content-type") || "video/mp4";
+
+    // Send entire video to Gemini
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType,
+          data: base64,
+        },
+      },
+      {
+        text: `You are a detective analyzing security camera footage for a missing persons investigation. Watch this entire video carefully.
+
+Write a brief incident report with:
+
+1. **OVERVIEW** — One sentence: what is this footage showing (location type, time of day, camera angle)
+
+2. **ACTIVITY LOG** — For each notable moment, write:
+   [timestamp] What happened
+   Only log moments where something actually happens (person appears, vehicle passes, movement, sound). Skip empty/static moments.
+
+3. **PERSONS** — For each person visible:
+   - Approximate build, clothing, hair
+   - Direction of movement
+   - Behavior (walking, running, standing, looking around)
+   - Could this be the missing person? (32F, 5'7", 140 lbs, brown hair, glasses, black jacket with fur collar)
+
+4. **VEHICLES** — Any vehicles: type, color, direction, license plate if visible
+
+5. **INVESTIGATIVE NOTES** — What's important here? What should investigators follow up on?
+
+Be concise. Write like detective notes, not an essay. If nothing notable happens, say "No significant activity observed."`,
+      },
+    ]);
+
+    const analysis = result.response.text();
+
+    // Save to evidence
     const supabase = createServiceClient();
-    const analysisText = results
-      .map((r) => `[${r.timestamp_label}] ${r.description}`)
-      .join("\n\n");
+    const { data: existing } = await supabase
+      .from("evidence")
+      .select("reviewer_notes")
+      .eq("id", evidence_id)
+      .single();
+
+    // Replace any old frame analysis, keep transcription
+    let notes = existing?.reviewer_notes || "";
+    // Remove old frame-by-frame analysis if present
+    const transcriptIdx = notes.indexOf("--- AUDIO TRANSCRIPTION ---");
+    if (transcriptIdx > -1) {
+      notes = analysis + "\n" + notes.substring(transcriptIdx);
+    } else {
+      notes = analysis;
+    }
 
     await supabase
       .from("evidence")
-      .update({
-        reviewer_notes: analysisText,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ reviewer_notes: notes, updated_at: new Date().toISOString() })
       .eq("id", evidence_id);
 
     return NextResponse.json({
       success: true,
-      frames_analyzed: results.length,
-      analysis: results,
+      analysis,
     });
   } catch (error) {
     console.error("Video analysis error:", error);
     return NextResponse.json(
-      { error: "Analysis failed" },
+      { error: error instanceof Error ? error.message : "Analysis failed" },
       { status: 500 }
     );
   }
