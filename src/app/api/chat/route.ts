@@ -182,6 +182,13 @@ export async function POST(request: NextRequest) {
               );
             }
           }
+          // Log question + answer
+          const supabaseLog = createServiceClient();
+          await supabaseLog.from("chat_log").insert({
+            question: message,
+            answer: outputText,
+          });
+
           // Track usage after stream completes
           const inputTokens = Math.ceil(systemPrompt.length / 4) + Math.ceil(message.length / 4);
           const outputTokens = Math.ceil(outputText.length / 4);
