@@ -108,59 +108,15 @@ export default function AdminReviewPage() {
     }
   }
 
-  // Extract multiple frames from a video at different timestamps
-  async function extractFramesFromUrl(url: string, count: number = 5): Promise<Array<{ base64: string; timestamp_seconds: number }>> {
-    const res = await fetch(url);
-    const blob = await res.blob();
-
-    return new Promise((resolve, reject) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      video.muted = true;
-      video.crossOrigin = "anonymous";
-
-      video.onloadedmetadata = async () => {
-        const duration = video.duration;
-        const frames: Array<{ base64: string; timestamp_seconds: number }> = [];
-        const timestamps = Array.from({ length: count }, (_, i) =>
-          Math.max(0.5, (duration * (i + 0.5)) / count)
-        );
-
-        for (const ts of timestamps) {
-          video.currentTime = ts;
-          await new Promise<void>((r) => { video.onseeked = () => r(); });
-
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.min(video.videoWidth, 1280);
-          canvas.height = Math.min(video.videoHeight, 720);
-          const ctx = canvas.getContext("2d")!;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-          const base64 = dataUrl.split(",")[1];
-          frames.push({ base64, timestamp_seconds: ts });
-        }
-
-        URL.revokeObjectURL(video.src);
-        resolve(frames);
-      };
-
-      video.onerror = () => reject(new Error("Video load error"));
-      video.src = URL.createObjectURL(blob);
-    });
-  }
-
   async function analyzeFullVideo(ev: Evidence) {
     if (!ev.file_url || !ev.mime_type?.startsWith("video")) return;
     setAnalyzingVideoId(ev.id);
 
     try {
-      const frames = await extractFramesFromUrl(ev.file_url, 5);
-
       const res = await fetch("/api/analyze-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evidence_id: ev.id, frames }),
+        body: JSON.stringify({ evidence_id: ev.id, file_url: ev.file_url }),
       });
 
       if (res.ok) {
@@ -588,20 +544,12 @@ export default function AdminReviewPage() {
                               </div>
                             )}
 
-                            {/* Video frame-by-frame analysis */}
-                            {(videoAnalysis[ev.id] || (ev.reviewer_notes && ev.reviewer_notes.includes("[0:"))) && (
-                              <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                <div className="text-xs font-semibold text-purple-800 uppercase mb-3">Frame-by-Frame Analysis</div>
-                                <div className="space-y-2">
-                                  {(videoAnalysis[ev.id] || []).map((frame: { timestamp_label: string; description: string }, idx: number) => (
-                                    <div key={idx} className="flex gap-3 text-sm">
-                                      <span className="font-mono text-xs text-purple-600 whitespace-nowrap mt-0.5 font-bold">{frame.timestamp_label}</span>
-                                      <p className="text-gray-700">{frame.description}</p>
-                                    </div>
-                                  ))}
-                                  {!videoAnalysis[ev.id] && ev.reviewer_notes && (
-                                    <div className="text-sm text-gray-700 whitespace-pre-wrap">{ev.reviewer_notes}</div>
-                                  )}
+                            {/* Video AI analysis (Gemini) */}
+                            {ev.reviewer_notes && !ev.reviewer_notes.startsWith("\n\n--- AUDIO") && (
+                              <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <div className="text-xs font-semibold text-gray-800 uppercase mb-2">AI Video Analysis</div>
+                                <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                  {ev.reviewer_notes.split("--- AUDIO TRANSCRIPTION ---")[0].trim()}
                                 </div>
                               </div>
                             )}

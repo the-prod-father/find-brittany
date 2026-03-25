@@ -39,27 +39,28 @@ export async function POST(request: NextRequest) {
         },
       },
       {
-        text: `You are a detective analyzing security camera footage for a missing persons investigation. Watch this entire video carefully.
+        text: `Watch this security camera video. Missing person case.
 
-Write a brief incident report with:
+Subject: Female, 32, 5'7", 140 lbs, brown hair, glasses, black jacket with fur collar.
 
-1. **OVERVIEW** — One sentence: what is this footage showing (location type, time of day, camera angle)
+Reply in this EXACT format only:
 
-2. **ACTIVITY LOG** — For each notable moment, write:
-   [timestamp] What happened
-   Only log moments where something actually happens (person appears, vehicle passes, movement, sound). Skip empty/static moments.
+**Camera:** [what camera/angle, time of day visible on overlay]
 
-3. **PERSONS** — For each person visible:
-   - Approximate build, clothing, hair
-   - Direction of movement
-   - Behavior (walking, running, standing, looking around)
-   - Could this be the missing person? (32F, 5'7", 140 lbs, brown hair, glasses, black jacket with fur collar)
+**Activity:**
+- [time] [what happened — one line max]
+- [time] [what happened]
+(only list moments with actual movement or activity. skip dead time.)
 
-4. **VEHICLES** — Any vehicles: type, color, direction, license plate if visible
+**People:** [describe each person: build, clothing, direction. or "None visible"]
 
-5. **INVESTIGATIVE NOTES** — What's important here? What should investigators follow up on?
+**Vehicles:** [type, color, direction. or "None"]
 
-Be concise. Write like detective notes, not an essay. If nothing notable happens, say "No significant activity observed."`,
+**Match check:** [could anyone in this video be the missing person? yes/no and why]
+
+**Key finding:** [one sentence — the single most important thing from this video]
+
+Keep it SHORT. No paragraphs. No filler. Bullet points only.`,
       },
     ]);
 
