@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase";
 import { CASE_INFO } from "@/lib/types";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
     messages.push({ role: "user", content: message });
 
     // Stream response
+    const startTime = Date.now();
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
@@ -168,16 +170,29 @@ export async function POST(request: NextRequest) {
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          let outputText = "";
           for await (const event of stream) {
             if (
               event.type === "content_block_delta" &&
               event.delta.type === "text_delta"
             ) {
+              outputText += event.delta.text;
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
               );
             }
           }
+          // Track usage after stream completes
+          const inputTokens = Math.ceil(systemPrompt.length / 4) + Math.ceil(message.length / 4);
+          const outputTokens = Math.ceil(outputText.length / 4);
+          trackUsage({
+            service: "anthropic",
+            model: "claude-sonnet-4-20250514",
+            endpoint: "/api/chat",
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            duration_ms: Date.now() - startTime,
+          });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -82,6 +83,14 @@ Extract ALL of the following information visible in the image. Return ONLY valid
     }
 
     const analysis = JSON.parse(jsonStr);
+
+    trackUsage({
+      service: "anthropic",
+      model: "claude-sonnet-4-20250514",
+      endpoint: "/api/analyze",
+      input_tokens: response.usage?.input_tokens || Math.ceil(base64.length / 4),
+      output_tokens: response.usage?.output_tokens || Math.ceil(content.text.length / 4),
+    });
 
     return NextResponse.json({
       success: true,

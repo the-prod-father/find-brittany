@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServiceClient } from "@/lib/supabase";
+import { trackUsage } from "@/lib/track-usage";
 
 export const maxDuration = 60;
 
@@ -17,6 +18,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const startTime = Date.now();
 
     // Fetch the video file
     const fileRes = await fetch(file_url);
@@ -65,6 +68,18 @@ Keep it SHORT. No paragraphs. No filler. Bullet points only.`,
     ]);
 
     const analysis = result.response.text();
+    const usage = result.response.usageMetadata;
+
+    // Track usage
+    trackUsage({
+      service: "gemini",
+      model: "gemini-2.0-flash",
+      endpoint: "/api/analyze-video",
+      evidence_id,
+      input_tokens: usage?.promptTokenCount || Math.ceil(base64.length / 4),
+      output_tokens: usage?.candidatesTokenCount || Math.ceil(analysis.length / 4),
+      duration_ms: Date.now() - startTime,
+    });
 
     // Save to evidence
     const supabase = createServiceClient();
