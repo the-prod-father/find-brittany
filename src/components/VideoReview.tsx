@@ -147,21 +147,21 @@ export default function VideoReview({ evidence: ev }: { evidence: Evidence }) {
       <div className="flex border-b border-gray-100">
         <button
           onClick={() => setTab("info")}
-          className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors ${tab === "info" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
+          className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors ${tab === "info" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
         >
           Info
         </button>
         <button
           onClick={() => setTab("ai")}
-          className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors ${tab === "ai" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
+          className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors ${tab === "ai" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
         >
-          AI Analysis {hasAI && "✓"}
+          AI {hasAI || analyzing ? (analyzing ? "..." : "✓") : ""}
         </button>
         <button
           onClick={() => setTab("transcript")}
-          className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors ${tab === "transcript" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
+          className={`flex-1 py-3 text-xs font-medium border-b-2 transition-colors ${tab === "transcript" ? "border-gray-900 text-gray-900" : "border-transparent text-gray-400"}`}
         >
-          Transcript {hasTranscript && "✓"}
+          Audio {hasTranscript || transcribing ? (transcribing ? "..." : "✓") : ""}
         </button>
       </div>
 

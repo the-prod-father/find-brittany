@@ -153,9 +153,9 @@ export default function InvestigationView() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-90px)] sm:h-[calc(100vh-104px)]">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-88px)] sm:h-[calc(100vh-104px)]">
       {/* Left sidebar — Timeline + Videos */}
-      <div className="w-full md:w-[380px] md:min-w-[340px] border-b md:border-b-0 md:border-r border-gray-200 flex flex-col max-h-[50vh] md:max-h-none overflow-hidden">
+      <div className="w-full md:w-[380px] md:min-w-[340px] border-b md:border-b-0 md:border-r border-gray-200 flex flex-col max-h-[45vh] md:max-h-none overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between mb-3">
@@ -195,7 +195,7 @@ export default function InvestigationView() {
 
           {/* Filter chips (timeline only) */}
           {!showVideos && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex gap-1 overflow-x-auto pb-1 -mb-1">
               <button
                 onClick={() => setFilterType("all")}
                 className={`px-2 py-1 rounded-full text-[10px] font-medium ${filterType === "all" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
@@ -206,7 +206,7 @@ export default function InvestigationView() {
                 <button
                   key={type}
                   onClick={() => setFilterType(filterType === type ? "all" : type)}
-                  className={`px-2 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 ${filterType === type ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+                  className={`px-2 py-1 rounded-full text-[10px] font-medium flex items-center gap-1 whitespace-nowrap flex-shrink-0 ${filterType === type ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
                 >
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: TYPE_COLORS[type] }} />
                   {label}
@@ -308,7 +308,7 @@ export default function InvestigationView() {
       </div>
 
       {/* Right — Map */}
-      <div className="flex-1 md:h-auto h-[50vh] relative">
+      <div className="flex-1 min-h-[55vh] md:min-h-0 relative">
         <InvestigationMap
           sightings={filteredSightings}
           timelineEvents={showMapTimelineMarkers ? timelineEvents : []}
