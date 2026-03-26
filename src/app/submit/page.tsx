@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import * as tus from "tus-js-client";
 import exifr from "exifr";
 import AddressSearch from "@/components/AddressSearch";
 
@@ -224,52 +225,40 @@ export default function SubmitPage() {
         const safeName = f.file.name.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
         const filename = `${ts}-${rnd}-${safeName}`;
 
-        // Upload — use resumable (TUS) for files over 5MB, standard for smaller
+        // TUS resumable upload — handles ANY file size with progress
         const fileSizeMB = f.file.size / 1024 / 1024;
         setUploadProgress(`Uploading ${f.file.name} (${fileSizeMB.toFixed(0)}MB)...`);
 
-        const { error: uploadError } = await supabase.storage
-          .from("evidence")
-          .upload(filename, f.file, {
-            contentType: f.file.type,
-          });
-
-        if (uploadError) {
-          console.error("Standard upload failed, trying resumable:", uploadError.message);
-          setUploadProgress(`Large file — resumable upload for ${f.file.name}...`);
-
-          // Use resumable upload for large files
-          const { error: resumableError } = await supabase.storage
-            .from("evidence")
-            .upload(filename, f.file, {
+        await new Promise<void>((resolve, reject) => {
+          const upload = new tus.Upload(f.file, {
+            endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
+            retryDelays: [0, 1000, 3000, 5000],
+            headers: {
+              authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+              "x-upsert": "true",
+            },
+            uploadDataDuringCreation: true,
+            removeFingerprintOnSuccess: true,
+            metadata: {
+              bucketName: "evidence",
+              objectName: filename,
               contentType: f.file.type,
-              upsert: true,
-            });
-
-          if (resumableError) {
-            // Last resort: chunk upload via XMLHttpRequest
-            setUploadProgress(`Uploading ${f.file.name} directly...`);
-            const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evidence/${filename}`;
-            const xhr = new XMLHttpRequest();
-            await new Promise<void>((resolve, reject) => {
-              xhr.open("POST", uploadUrl);
-              xhr.setRequestHeader("Authorization", `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`);
-              xhr.setRequestHeader("x-upsert", "true");
-              xhr.upload.onprogress = (e) => {
-                if (e.lengthComputable) {
-                  const pct = Math.round((e.loaded / e.total) * 100);
-                  setUploadProgress(`Uploading ${f.file.name}: ${pct}%`);
-                }
-              };
-              xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) resolve();
-                else reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
-              };
-              xhr.onerror = () => reject(new Error("Upload network error"));
-              xhr.send(f.file);
-            });
-          }
-        }
+            },
+            chunkSize: 6 * 1024 * 1024, // 6MB chunks
+            onError: (error) => {
+              console.error("Upload error:", error);
+              reject(new Error(`Upload failed: ${error.message}`));
+            },
+            onProgress: (bytesUploaded, bytesTotal) => {
+              const pct = Math.round((bytesUploaded / bytesTotal) * 100);
+              setUploadProgress(`Uploading ${f.file.name}: ${pct}%`);
+            },
+            onSuccess: () => {
+              resolve();
+            },
+          });
+          upload.start();
+        });
 
         setUploadProgress(`Processing ${f.file.name}...`);
         const { data: urlData } = supabase.storage.from("evidence").getPublicUrl(filename);

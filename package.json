@@ -32,6 +32,7 @@
     "react-markdown": "^10.1.0",
     "resend": "^6.9.4",
     "tailwindcss": "^4.2.2",
+    "tus-js-client": "^4.3.1",
     "typescript": "^6.0.2",
     "uuid": "^13.0.0"
   },
