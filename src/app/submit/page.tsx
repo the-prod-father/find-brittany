@@ -54,6 +54,7 @@ export default function SubmitPage() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
   const [detectedDate, setDetectedDate] = useState("");
   const [detectedTime, setDetectedTime] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -223,7 +224,35 @@ export default function SubmitPage() {
         const safeName = f.file.name.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
         const filename = `${ts}-${rnd}-${safeName}`;
 
-        await supabase.storage.from("evidence").upload(filename, f.file, { contentType: f.file.type });
+        // Upload with progress tracking — handles any file size
+        setUploadProgress(`Uploading ${f.file.name} (${(f.file.size / 1024 / 1024).toFixed(0)}MB)...`);
+
+        const { error: uploadError } = await supabase.storage
+          .from("evidence")
+          .upload(filename, f.file, {
+            contentType: f.file.type,
+            duplex: "half",
+          });
+
+        if (uploadError) {
+          console.error("Upload failed:", uploadError);
+          setUploadProgress(`Failed to upload ${f.file.name}: ${uploadError.message}. Retrying...`);
+
+          // Retry once with upsert
+          const { error: retryError } = await supabase.storage
+            .from("evidence")
+            .upload(filename, f.file, {
+              contentType: f.file.type,
+              upsert: true,
+              duplex: "half",
+            });
+
+          if (retryError) {
+            throw new Error(`Upload failed for ${f.file.name}: ${retryError.message}`);
+          }
+        }
+
+        setUploadProgress(`Processing ${f.file.name}...`);
         const { data: urlData } = supabase.storage.from("evidence").getPublicUrl(filename);
 
         await fetch("/api/evidence/record", {
@@ -255,10 +284,13 @@ export default function SubmitPage() {
         });
       }
 
+      setUploadProgress("");
       setStep(3);
     } catch (err) {
       console.error(err);
-      alert("Error submitting. Please try again or call 516-573-7347.");
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      alert(`Upload error: ${msg}\n\nPlease try again or call 516-573-7347.`);
+      setUploadProgress("");
     } finally {
       setSubmitting(false);
     }
@@ -484,7 +516,7 @@ export default function SubmitPage() {
               className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-200 disabled:text-gray-400 rounded-xl font-semibold text-lg transition-colors"
             >
               {submitting
-                ? "Submitting..."
+                ? uploadProgress || "Submitting..."
                 : !hasLocation
                   ? "Add a location to continue"
                   : `Submit ${files.length} file${files.length > 1 ? "s" : ""}`}
