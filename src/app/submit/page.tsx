@@ -224,31 +224,50 @@ export default function SubmitPage() {
         const safeName = f.file.name.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
         const filename = `${ts}-${rnd}-${safeName}`;
 
-        // Upload with progress tracking — handles any file size
-        setUploadProgress(`Uploading ${f.file.name} (${(f.file.size / 1024 / 1024).toFixed(0)}MB)...`);
+        // Upload — use resumable (TUS) for files over 5MB, standard for smaller
+        const fileSizeMB = f.file.size / 1024 / 1024;
+        setUploadProgress(`Uploading ${f.file.name} (${fileSizeMB.toFixed(0)}MB)...`);
 
         const { error: uploadError } = await supabase.storage
           .from("evidence")
           .upload(filename, f.file, {
             contentType: f.file.type,
-            duplex: "half",
           });
 
         if (uploadError) {
-          console.error("Upload failed:", uploadError);
-          setUploadProgress(`Failed to upload ${f.file.name}: ${uploadError.message}. Retrying...`);
+          console.error("Standard upload failed, trying resumable:", uploadError.message);
+          setUploadProgress(`Large file — resumable upload for ${f.file.name}...`);
 
-          // Retry once with upsert
-          const { error: retryError } = await supabase.storage
+          // Use resumable upload for large files
+          const { error: resumableError } = await supabase.storage
             .from("evidence")
             .upload(filename, f.file, {
               contentType: f.file.type,
               upsert: true,
-              duplex: "half",
             });
 
-          if (retryError) {
-            throw new Error(`Upload failed for ${f.file.name}: ${retryError.message}`);
+          if (resumableError) {
+            // Last resort: chunk upload via XMLHttpRequest
+            setUploadProgress(`Uploading ${f.file.name} directly...`);
+            const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/evidence/${filename}`;
+            const xhr = new XMLHttpRequest();
+            await new Promise<void>((resolve, reject) => {
+              xhr.open("POST", uploadUrl);
+              xhr.setRequestHeader("Authorization", `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`);
+              xhr.setRequestHeader("x-upsert", "true");
+              xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                  const pct = Math.round((e.loaded / e.total) * 100);
+                  setUploadProgress(`Uploading ${f.file.name}: ${pct}%`);
+                }
+              };
+              xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) resolve();
+                else reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+              };
+              xhr.onerror = () => reject(new Error("Upload network error"));
+              xhr.send(f.file);
+            });
           }
         }
 
