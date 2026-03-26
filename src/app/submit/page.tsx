@@ -219,7 +219,9 @@ export default function SubmitPage() {
       for (const f of files) {
         const ts = Date.now();
         const rnd = Math.random().toString(36).substring(7);
-        const filename = `${ts}-${rnd}-${f.file.name}`;
+        // Sanitize filename — remove spaces, special chars
+        const safeName = f.file.name.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
+        const filename = `${ts}-${rnd}-${safeName}`;
 
         await supabase.storage.from("evidence").upload(filename, f.file, { contentType: f.file.type });
         const { data: urlData } = supabase.storage.from("evidence").getPublicUrl(filename);
