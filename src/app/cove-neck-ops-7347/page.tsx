@@ -284,8 +284,15 @@ function getPropertyStatus(prop: CanvassProperty): string {
   return "not_checked";
 }
 
+function shortAddress(address: string): string {
+  // Extract just the number and street name, strip city/state
+  const parts = address.split(",")[0];
+  // Also strip long suffixes like " — Sagamore Hill NHS"
+  return parts.split(" — ")[0].trim();
+}
+
 // ============================================
-// MAP COMPONENT
+// MAP CONTENT COMPONENT
 // ============================================
 
 function CoveNeckMapContent({
@@ -293,29 +300,41 @@ function CoveNeckMapContent({
   selectedId,
   onSelectProperty,
   zoomTo,
+  showCameras,
+  showPolygon,
 }: {
   properties: CanvassProperty[];
   selectedId: string | null;
   onSelectProperty: (id: string) => void;
   zoomTo: { lat: number; lng: number } | null;
+  showCameras: boolean;
+  showPolygon: boolean;
 }) {
   const map = useMap();
   const polygonRef = useRef<google.maps.Polygon | null>(null);
 
+  // Draw / hide Cove Neck polygon
   useEffect(() => {
     if (!map) return;
 
-    // Draw Cove Neck polygon
-    if (!polygonRef.current) {
-      polygonRef.current = new google.maps.Polygon({
-        paths: COVE_NECK_POLYGON,
-        strokeColor: "#ef4444",
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        fillColor: "#ef4444",
-        fillOpacity: 0.08,
-        map,
-      });
+    if (showPolygon) {
+      if (!polygonRef.current) {
+        polygonRef.current = new google.maps.Polygon({
+          paths: COVE_NECK_POLYGON,
+          strokeColor: "#ef4444",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#ef4444",
+          fillOpacity: 0.08,
+          map,
+        });
+      } else {
+        polygonRef.current.setMap(map);
+      }
+    } else {
+      if (polygonRef.current) {
+        polygonRef.current.setMap(null);
+      }
     }
 
     return () => {
@@ -324,7 +343,7 @@ function CoveNeckMapContent({
         polygonRef.current = null;
       }
     };
-  }, [map]);
+  }, [map, showPolygon]);
 
   // Zoom to selected property
   useEffect(() => {
@@ -348,7 +367,7 @@ function CoveNeckMapContent({
             onClick={() => onSelectProperty(prop.id)}
           >
             <div
-              className={`w-4 h-4 rounded-full border-2 border-white shadow-md cursor-pointer transition-transform ${isSelected ? "scale-150 ring-2 " + config.ring : ""}`}
+              className={`rounded-full border-2 border-white shadow-md cursor-pointer transition-transform ${isSelected ? "w-5 h-5 scale-125 ring-2 " + config.ring : "w-3.5 h-3.5"}`}
               style={{ backgroundColor: config.color }}
               title={prop.address}
             />
@@ -356,12 +375,16 @@ function CoveNeckMapContent({
         );
       })}
       {/* ALPR Camera markers */}
-      {AREA_CAMERAS.map((cam, i) => (
+      {showCameras && AREA_CAMERAS.map((cam, i) => (
         <AdvancedMarker key={`cam-${i}`} position={{ lat: cam.lat, lng: cam.lng }}>
           <div
-            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md shadow-lg text-[9px] font-bold whitespace-nowrap ${cam.critical ? "bg-yellow-400 text-black" : "bg-blue-500 text-white"}`}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shadow-lg ${cam.critical ? "bg-yellow-400 text-black" : "bg-blue-600 text-white"}`}
             title={cam.label}
           >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
             <span>CAM</span>
           </div>
         </AdvancedMarker>
@@ -371,7 +394,130 @@ function CoveNeckMapContent({
 }
 
 // ============================================
-// PROPERTY CARD
+// MAP CONTROLS OVERLAY
+// ============================================
+
+function MapControls({
+  mapType,
+  onMapType,
+  streetViewOn,
+  onStreetView,
+  showCameras,
+  onToggleCameras,
+  showPolygon,
+  onTogglePolygon,
+}: {
+  mapType: string;
+  onMapType: (t: string) => void;
+  streetViewOn: boolean;
+  onStreetView: () => void;
+  showCameras: boolean;
+  onToggleCameras: () => void;
+  showPolygon: boolean;
+  onTogglePolygon: () => void;
+}) {
+  const btnBase = "px-2.5 py-1.5 text-[11px] font-medium rounded-md transition-colors";
+  const btnActive = "bg-white text-gray-900 shadow-sm";
+  const btnInactive = "text-gray-300 hover:text-white hover:bg-white/10";
+
+  return (
+    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+      {/* Map type switcher */}
+      <div className="bg-black/70 backdrop-blur-sm rounded-lg p-1 flex gap-0.5">
+        {[
+          { id: "satellite", label: "Satellite" },
+          { id: "roadmap", label: "Road" },
+          { id: "terrain", label: "Terrain" },
+          { id: "3d", label: "3D" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onMapType(t.id)}
+            className={`${btnBase} ${mapType === t.id ? btnActive : btnInactive}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Toggle buttons */}
+      <div className="bg-black/70 backdrop-blur-sm rounded-lg p-1 flex flex-col gap-0.5">
+        <button
+          onClick={onStreetView}
+          className={`${btnBase} text-left ${streetViewOn ? btnActive : btnInactive}`}
+        >
+          Street View {streetViewOn ? "ON" : "OFF"}
+        </button>
+        <button
+          onClick={onToggleCameras}
+          className={`${btnBase} text-left ${showCameras ? btnActive : btnInactive}`}
+        >
+          Cameras {showCameras ? "ON" : "OFF"}
+        </button>
+        <button
+          onClick={onTogglePolygon}
+          className={`${btnBase} text-left ${showPolygon ? btnActive : btnInactive}`}
+        >
+          Boundary {showPolygon ? "ON" : "OFF"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MAP WRAPPER (handles Street View + map type)
+// ============================================
+
+function MapController({
+  mapType,
+  streetViewOn,
+  selectedProperty,
+}: {
+  mapType: string;
+  streetViewOn: boolean;
+  selectedProperty: CanvassProperty | null;
+}) {
+  const map = useMap();
+  const prevStreetView = useRef(false);
+
+  // Handle map type changes
+  useEffect(() => {
+    if (!map) return;
+    if (mapType === "3d") {
+      map.setMapTypeId("satellite");
+      map.setTilt(45);
+    } else {
+      map.setMapTypeId(mapType);
+      map.setTilt(0);
+    }
+  }, [map, mapType]);
+
+  // Handle Street View toggle
+  useEffect(() => {
+    if (!map) return;
+    const sv = map.getStreetView();
+    if (!sv) return;
+
+    if (streetViewOn) {
+      let pos: google.maps.LatLng | google.maps.LatLngLiteral = map.getCenter()!;
+      if (selectedProperty?.latitude && selectedProperty?.longitude) {
+        pos = { lat: selectedProperty.latitude, lng: selectedProperty.longitude };
+      }
+      sv.setPosition(pos);
+      sv.setVisible(true);
+      prevStreetView.current = true;
+    } else if (prevStreetView.current) {
+      sv.setVisible(false);
+      prevStreetView.current = false;
+    }
+  }, [map, streetViewOn, selectedProperty]);
+
+  return null;
+}
+
+// ============================================
+// SIDEBAR PROPERTY CARD
 // ============================================
 
 function PropertyCard({
@@ -389,11 +535,9 @@ function PropertyCard({
   const progress = getChecklistProgress(data.checklist);
   const status = getPropertyStatus(property);
   const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.not_checked;
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const [localNotes, setLocalNotes] = useState(data.notes);
   const [checkedBy, setCheckedBy] = useState(data.checked_by);
-  const [structures, setStructures] = useState(data.structures.join(", "));
   const notesTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const updateChecklist = (key: keyof PropertyChecklist, value: boolean) => {
@@ -402,7 +546,6 @@ function PropertyCard({
       checklist: { ...data.checklist, [key]: value },
       notes: localNotes,
       checked_by: checkedBy,
-      structures: structures.split(",").map(s => s.trim()).filter(Boolean),
     };
     const newProgress = getChecklistProgress(newData.checklist);
     const newStatus = newProgress.done === newProgress.total && newProgress.done > 0 ? "cleared" : newProgress.done > 0 ? "in_progress" : "not_checked";
@@ -423,7 +566,6 @@ function PropertyCard({
         checklist: data.checklist,
         notes: text,
         checked_by: checkedBy,
-        structures: structures.split(",").map(s => s.trim()).filter(Boolean),
       };
       onUpdate(property.id, { notes: serializePropertyData(newData) });
     }, 1000);
@@ -443,244 +585,115 @@ function PropertyCard({
     onUpdate(property.id, { status: newStatus });
   };
 
-  const hasSatellite = property.latitude && property.longitude && apiKey;
-  const satelliteUrl = hasSatellite
-    ? `https://maps.googleapis.com/maps/api/staticmap?center=${property.latitude},${property.longitude}&zoom=19&size=600x300&maptype=satellite&scale=2&key=${apiKey}`
-    : null;
-  const earthUrl = property.latitude && property.longitude
-    ? `https://earth.google.com/web/@${property.latitude},${property.longitude},0a,300d,35y,0h,45t,0r`
-    : null;
-  const streetViewUrl = property.latitude && property.longitude
-    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${property.latitude},${property.longitude}`
-    : null;
-  const mapsUrl = property.latitude && property.longitude
-    ? `https://www.google.com/maps/@${property.latitude},${property.longitude},19z/data=!3m1!1e3`
-    : null;
-
   return (
-    <div className={`border rounded-xl overflow-hidden transition-all ${isExpanded ? "border-gray-300 shadow-lg" : "border-gray-200 shadow-sm"}`}>
-      {/* Header - always visible */}
-      <button onClick={onToggle} className="w-full text-left p-3 hover:bg-gray-50 transition-colors">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-gray-900 leading-tight truncate">{property.address}</div>
-            {data.property_type !== "residential" && (
-              <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
-                {data.property_type}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {progress.done > 0 && (
-              <span className="text-[10px] text-gray-500 font-mono">{progress.done}/{progress.total}</span>
-            )}
-            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${statusConfig.bg}`}>
-              {statusConfig.label}
-            </span>
-          </div>
+    <div className={`border-b border-gray-700/50 transition-colors ${isExpanded ? "bg-gray-800/80" : "hover:bg-gray-800/40"}`}>
+      {/* Compact header row */}
+      <button onClick={onToggle} className="w-full text-left px-3 py-2.5 flex items-center gap-2">
+        {/* Status dot */}
+        <div
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: statusConfig.color }}
+        />
+        {/* Address */}
+        <div className="flex-1 min-w-0 text-[13px] text-gray-200 font-medium truncate">
+          {shortAddress(property.address)}
         </div>
-        {data.checked_by && (
-          <div className="text-[10px] text-gray-400 mt-1">
-            Checked by {data.checked_by} {property.contacted_at ? `at ${new Date(property.contacted_at).toLocaleTimeString()}` : ""}
-          </div>
-        )}
+        {/* Progress fraction */}
+        <span className="text-[10px] text-gray-500 font-mono shrink-0">
+          {progress.done}/{progress.total}
+        </span>
+        {/* Expand chevron */}
+        <svg
+          className={`w-3.5 h-3.5 text-gray-500 transition-transform shrink-0 ${isExpanded ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
       </button>
 
-      {/* Expanded content */}
+      {/* Expanded detail */}
       {isExpanded && (
-        <div className="border-t border-gray-100">
-          {/* Satellite Image */}
-          {satelliteUrl && (
-            <div className="relative">
-              <img
-                src={satelliteUrl}
-                alt={`Satellite view of ${property.address}`}
-                className="w-full h-48 object-cover"
-                loading="lazy"
-              />
-              <div className="absolute bottom-2 right-2 flex gap-1">
-                {earthUrl && (
-                  <a href={earthUrl} target="_blank" rel="noopener noreferrer"
-                    className="bg-black/70 text-white text-[10px] px-2 py-1 rounded hover:bg-black/90 transition-colors">
-                    3D Earth
-                  </a>
-                )}
-                {streetViewUrl && (
-                  <a href={streetViewUrl} target="_blank" rel="noopener noreferrer"
-                    className="bg-black/70 text-white text-[10px] px-2 py-1 rounded hover:bg-black/90 transition-colors">
-                    Street View
-                  </a>
-                )}
-                {mapsUrl && (
-                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
-                    className="bg-black/70 text-white text-[10px] px-2 py-1 rounded hover:bg-black/90 transition-colors">
-                    Google Maps
-                  </a>
-                )}
-              </div>
+        <div className="px-3 pb-3 space-y-3">
+          {/* Full address + status badge */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusConfig.bg}`}>
+              {statusConfig.label}
+            </span>
+            <span className="text-[10px] text-gray-500 truncate">{property.address}</span>
+          </div>
+
+          {/* Checked by info */}
+          {data.checked_by && (
+            <div className="text-[10px] text-gray-500">
+              Checked by {data.checked_by}
+              {property.contacted_at ? ` at ${new Date(property.contacted_at).toLocaleTimeString()}` : ""}
             </div>
           )}
 
-          <div className="p-3 space-y-3">
-            {/* Structures observed from satellite */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                Structures on property (from satellite review)
-              </label>
-              <input
-                type="text"
-                value={structures}
-                onChange={(e) => setStructures(e.target.value)}
-                onBlur={() => {
-                  const newData: PropertyData = { ...data, notes: localNotes, checked_by: checkedBy, structures: structures.split(",").map(s => s.trim()).filter(Boolean) };
-                  onUpdate(property.id, { notes: serializePropertyData(newData) });
-                }}
-                placeholder="e.g. main house, pool house, 3-car garage, shed, tennis court"
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-gray-400"
-              />
+          {/* Search Checklist */}
+          <div>
+            <div className="text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+              Checklist ({progress.done}/{progress.total})
             </div>
+            <div className="space-y-0.5">
+              {CHECKLIST_ITEMS.map((item) => (
+                <label key={item.key} className="flex items-start gap-2 py-1 px-1.5 rounded hover:bg-gray-700/40 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!data.checklist[item.key]}
+                    onChange={(e) => updateChecklist(item.key, e.target.checked)}
+                    className="mt-0.5 rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                  />
+                  <span className={`text-[12px] leading-tight ${data.checklist[item.key] ? "text-gray-600 line-through" : "text-gray-300"}`}>
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-            {/* Search Checklist */}
-            <div>
-              <div className="text-[11px] font-semibold text-gray-700 mb-2">
-                Search Checklist ({progress.done}/{progress.total})
-              </div>
-              <div className="space-y-1">
-                {CHECKLIST_ITEMS.map((item) => (
-                  <label key={item.key} className="flex items-start gap-2 py-1 px-2 rounded hover:bg-gray-50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!data.checklist[item.key]}
-                      onChange={(e) => updateChecklist(item.key, e.target.checked)}
-                      className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className={`text-xs ${data.checklist[item.key] ? "text-gray-400 line-through" : "text-gray-700"}`}>
-                      {item.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+          {/* Notes */}
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-400 mb-1 uppercase tracking-wider">Notes</label>
+            <textarea
+              value={localNotes}
+              onChange={(e) => saveNotes(e.target.value)}
+              placeholder="Signs of entry, observations..."
+              rows={2}
+              className="w-full text-[12px] bg-gray-800 border border-gray-700 rounded-md px-2.5 py-1.5 text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+            />
+          </div>
 
-            {/* Notes */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-700 mb-1">Field Notes</label>
-              <textarea
-                value={localNotes}
-                onChange={(e) => saveNotes(e.target.value)}
-                placeholder="Signs of entry, observations, follow-up needed..."
-                rows={3}
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-gray-400 resize-none"
-              />
-            </div>
+          {/* Checked by */}
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-400 mb-1 uppercase tracking-wider">Checked by</label>
+            <input
+              type="text"
+              value={checkedBy}
+              onChange={(e) => setCheckedBy(e.target.value)}
+              onBlur={() => saveCheckedBy(checkedBy)}
+              placeholder="Your name"
+              className="w-full text-[12px] bg-gray-800 border border-gray-700 rounded-md px-2.5 py-1.5 text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
 
-            {/* Checked by */}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-700 mb-1">Checked by</label>
-              <input
-                type="text"
-                value={checkedBy}
-                onChange={(e) => setCheckedBy(e.target.value)}
-                onBlur={() => saveCheckedBy(checkedBy)}
-                placeholder="Your name"
-                className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 placeholder:text-gray-400"
-              />
-            </div>
-
-            {/* Quick status buttons */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              <button onClick={() => markStatus("cleared")} className="text-[10px] px-2.5 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 font-medium">
-                Mark Cleared
-              </button>
-              <button onClick={() => markStatus("needs_followup")} className="text-[10px] px-2.5 py-1.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 font-medium">
-                Needs Follow-up
-              </button>
-              <button onClick={() => markStatus("has_camera")} className="text-[10px] px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 font-medium">
-                Has Camera
-              </button>
-              <button onClick={() => markStatus("person_of_interest")} className="text-[10px] px-2.5 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 font-medium">
-                ALERT
-              </button>
-            </div>
+          {/* Quick status buttons */}
+          <div className="flex flex-wrap gap-1.5">
+            <button onClick={() => markStatus("cleared")} className="text-[10px] px-2 py-1 bg-green-900/40 text-green-400 border border-green-800 rounded-md hover:bg-green-900/60 font-medium">
+              Mark Cleared
+            </button>
+            <button onClick={() => markStatus("needs_followup")} className="text-[10px] px-2 py-1 bg-purple-900/40 text-purple-400 border border-purple-800 rounded-md hover:bg-purple-900/60 font-medium">
+              Follow-up
+            </button>
+            <button onClick={() => markStatus("has_camera")} className="text-[10px] px-2 py-1 bg-blue-900/40 text-blue-400 border border-blue-800 rounded-md hover:bg-blue-900/60 font-medium">
+              Has Camera
+            </button>
+            <button onClick={() => markStatus("person_of_interest")} className="text-[10px] px-2 py-1 bg-red-900/40 text-red-400 border border-red-800 rounded-md hover:bg-red-900/60 font-medium">
+              ALERT
+            </button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ============================================
-// FIELD REFERENCE GUIDE
-// ============================================
-
-function FieldGuide({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-          <h2 className="text-base font-bold text-gray-900">Field Reference Guide</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">X</button>
-        </div>
-        <div className="p-4 space-y-4 text-xs text-gray-700">
-          <section>
-            <h3 className="font-bold text-sm text-red-700 mb-1">CRITICAL: Behavioral Considerations</h3>
-            <ul className="space-y-1 list-disc pl-4">
-              <li>Person in psychosis may <strong>actively hide</strong> from searchers and flee</li>
-              <li>Will likely NOT respond to her name being called</li>
-              <li><strong>Search quietly</strong> — calm two-person teams, no shouting</li>
-              <li>If found: one calm voice, don&apos;t crowd, offer water, call 911 + EMS immediately</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-sm text-gray-900 mb-1">What to Look For at Each Property</h3>
-            <ul className="space-y-1 list-disc pl-4">
-              <li><strong>Doors & windows:</strong> Any unlocked, ajar, or showing signs of forced entry?</li>
-              <li><strong>Dust patterns:</strong> Disturbed dust on windowsills, door handles, floors</li>
-              <li><strong>Footprints:</strong> In mud, soft ground, snow, or dew on grass</li>
-              <li><strong>Missing food/water:</strong> Check outdoor fridges, pet food, bird feeders</li>
-              <li><strong>Water source usage:</strong> Garden hoses uncoiled, spigots wet, rain barrel disturbed</li>
-              <li><strong>Displaced items:</strong> Outdoor furniture moved, cushions rearranged, trash disturbed</li>
-              <li><strong>Clothing or belongings:</strong> Any items that don&apos;t belong</li>
-              <li><strong>Body warmth:</strong> Touch surfaces in enclosed spaces (car hoods, chair seats)</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-sm text-gray-900 mb-1">Structures to Check</h3>
-            <ul className="space-y-1 list-disc pl-4">
-              <li>Main house (all entry points)</li>
-              <li>Attached/detached garage</li>
-              <li>Guest cottage, pool house, cabana</li>
-              <li>Garden shed, tool shed, potting shed</li>
-              <li>Boathouse, dock house, waterfront structures</li>
-              <li>Under decks, porches, overhangs</li>
-              <li>Vehicles (unlocked cars, boats under tarps)</li>
-              <li>Crawl spaces accessible from outside</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-sm text-gray-900 mb-1">Camera Requests</h3>
-            <ul className="space-y-1 list-disc pl-4">
-              <li>Ask for footage from <strong>March 20 onward</strong> (night of disappearance)</li>
-              <li>Ring, Nest, Arlo, Blink, Wyze — check all doorbell and outdoor cameras</li>
-              <li>Ask about motion alert history for March 20-21 overnight</li>
-              <li>Trail cameras on property (common in wooded areas)</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="font-bold text-sm text-amber-700 mb-1">Subject Description</h3>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <div><strong>Brittany Kritis-Garip</strong>, 32</div>
-              <div>5&apos;7&quot;, 140 lbs, brown hair, brown eyes</div>
-              <div>Last wearing: black pants, black jacket with fur collar</div>
-              <div className="mt-1 text-amber-700">May appear disoriented, confused, or frightened. Not dangerous.</div>
-            </div>
-          </section>
-        </div>
-      </div>
     </div>
   );
 }
@@ -696,11 +709,15 @@ export default function CoveNeckOps() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
-  const [showMap, setShowMap] = useState(true);
-  const [showGuide, setShowGuide] = useState(false);
-  const [addingProperty, setAddingProperty] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [searchText, setSearchText] = useState("");
   const [seeding, setSeeding] = useState(false);
+  const [addingProperty, setAddingProperty] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mapType, setMapType] = useState("satellite");
+  const [streetViewOn, setStreetViewOn] = useState(false);
+  const [showCameras, setShowCameras] = useState(true);
+  const [showPolygon, setShowPolygon] = useState(true);
   const lastFetch = useRef<number>(0);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -741,7 +758,6 @@ export default function CoveNeckOps() {
       body: JSON.stringify({ id, ...updates }),
     });
     if (!res.ok) {
-      // Revert on failure
       fetchProperties(true);
     }
   }, [fetchProperties]);
@@ -789,12 +805,16 @@ export default function CoveNeckOps() {
     }
   }, [loading, properties.length, seeding, seedProperties]);
 
+  // Filter + search
   const filteredProperties = properties.filter((p) => {
-    if (filter === "all") return true;
-    return getPropertyStatus(p) === filter;
+    if (filter !== "all" && getPropertyStatus(p) !== filter) return false;
+    if (searchText.trim()) {
+      return p.address.toLowerCase().includes(searchText.toLowerCase());
+    }
+    return true;
   });
 
-  // Sort: critical first, then by status (not_checked > in_progress > rest)
+  // Sort: critical first, then by status
   const sortedProperties = [...filteredProperties].sort((a, b) => {
     const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
     const statusOrder: Record<string, number> = { person_of_interest: 0, not_checked: 1, needs_followup: 2, in_progress: 3, has_camera: 4, cleared: 5 };
@@ -814,218 +834,271 @@ export default function CoveNeckOps() {
     alerts: properties.filter((p) => getPropertyStatus(p) === "person_of_interest" || getPropertyStatus(p) === "needs_followup").length,
   };
 
+  // Compute zoom target from selectedMapId
+  const zoomTarget = selectedMapId ? (() => {
+    const p = properties.find(pr => pr.id === selectedMapId);
+    return p?.latitude && p?.longitude ? { lat: p.latitude, lng: p.longitude } : null;
+  })() : null;
+
+  const selectedProperty = selectedMapId ? properties.find(p => p.id === selectedMapId) || null : null;
+
+  // Select property from map marker
+  const handleMapSelect = (id: string) => {
+    setSelectedMapId(id);
+    setExpandedId(id);
+    // Open sidebar on mobile
+    setSidebarOpen(true);
+    // Scroll to property in sidebar
+    setTimeout(() => {
+      document.getElementById(`property-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+  };
+
+  // Select property from sidebar
+  const handleSidebarToggle = (id: string) => {
+    const opening = expandedId !== id;
+    setExpandedId(opening ? id : null);
+    setSelectedMapId(opening ? id : null);
+  };
+
   if (loading) {
     return (
-      <div className="h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-screen bg-gray-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-600 mx-auto" />
-          <div className="mt-3 text-sm text-gray-600">Loading Cove Neck Operations...</div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mx-auto" />
+          <div className="mt-3 text-sm text-gray-400">Loading Cove Neck Operations...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
+    <div className="h-screen overflow-hidden flex bg-gray-950">
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-3 left-3 z-50 lg:hidden bg-black/70 backdrop-blur-sm text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {sidebarOpen ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          )}
+        </svg>
+      </button>
+
+      {/* LEFT SIDEBAR */}
+      <div
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } fixed lg:relative z-40 lg:z-auto lg:translate-x-0 h-full w-[380px] max-w-[85vw] bg-gray-900 border-r border-gray-800 flex flex-col transition-transform duration-200`}
+      >
+        {/* Sidebar Header */}
+        <div className="shrink-0 p-4 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-lg font-bold text-gray-900 tracking-tight">COVE NECK OPS</h1>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Property Search Operations</div>
+              <h1 className="text-base font-bold text-white tracking-wide">COVE NECK OPS</h1>
+              <div className="text-[10px] text-gray-500 uppercase tracking-widest">Property Search Operations</div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowGuide(true)}
-                className="text-xs px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 font-medium"
-              >
-                Field Guide
-              </button>
-              <button
-                onClick={() => fetchProperties(false)}
-                className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"
-              >
-                Refresh
-              </button>
-            </div>
+            <button
+              onClick={() => fetchProperties(false)}
+              className="text-gray-500 hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-800 transition-colors"
+              title="Refresh"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
 
-          {/* Stats bar */}
-          <div className="flex gap-3 mt-2 text-[11px]">
-            <span className="text-gray-600">{stats.total} properties</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-green-600 font-medium">{stats.cleared} cleared</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-amber-600">{stats.checked - stats.cleared} in progress</span>
-            <span className="text-gray-300">|</span>
-            <span className="text-blue-600">{stats.cameras} cameras</span>
+          {/* Stats */}
+          <div className="flex items-center gap-2 text-[11px] text-gray-400 mb-2">
+            <span className="text-green-400 font-semibold">{stats.cleared}</span>
+            <span>/</span>
+            <span>{stats.total} cleared</span>
             {stats.alerts > 0 && (
               <>
-                <span className="text-gray-300">|</span>
-                <span className="text-red-600 font-bold">{stats.alerts} alerts</span>
+                <span className="text-gray-600">|</span>
+                <span className="text-red-400 font-semibold">{stats.alerts} alerts</span>
               </>
             )}
+            <span className="text-gray-600">|</span>
+            <span className="text-blue-400">{stats.cameras} cam</span>
           </div>
 
           {/* Progress bar */}
           {stats.total > 0 && (
-            <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden mb-3">
               <div
                 className="h-full bg-green-500 rounded-full transition-all duration-500"
                 style={{ width: `${(stats.cleared / stats.total) * 100}%` }}
               />
             </div>
           )}
-        </div>
 
-        {/* Filter bar */}
-        <div className="px-4 pb-2 flex gap-1.5 overflow-x-auto">
-          {([
-            ["all", "All"],
-            ["not_checked", "Not Checked"],
-            ["in_progress", "In Progress"],
-            ["cleared", "Cleared"],
-            ["needs_followup", "Follow-up"],
-            ["has_camera", "Cameras"],
-            ["person_of_interest", "Alerts"],
-          ] as [FilterStatus, string][]).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`text-[10px] px-2.5 py-1 rounded-full whitespace-nowrap font-medium transition-colors ${
-                filter === key
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {label}
-              {key !== "all" && (
-                <span className="ml-1 opacity-70">
-                  {properties.filter((p) => getPropertyStatus(p) === key).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Map toggle + map */}
-      <div className="px-4 pt-3">
-        <button
-          onClick={() => setShowMap(!showMap)}
-          className="text-xs text-gray-500 hover:text-gray-700 mb-2 flex items-center gap-1"
-        >
-          <span className={`transition-transform ${showMap ? "rotate-90" : ""}`}>&gt;</span>
-          {showMap ? "Hide map" : "Show map"}
-        </button>
-
-        {showMap && apiKey && (
-          <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm mb-4" style={{ height: 280 }}>
-            <APIProvider apiKey={apiKey}>
-              <Map
-                defaultCenter={COVE_NECK_CENTER}
-                defaultZoom={14}
-                mapId="cove-neck-ops-map"
-                mapTypeId="satellite"
-                disableDefaultUI
-                zoomControl
-                style={{ width: "100%", height: "100%" }}
-              >
-                <CoveNeckMapContent
-                  properties={properties}
-                  selectedId={selectedMapId}
-                  onSelectProperty={(id) => {
-                    setSelectedMapId(id);
-                    setExpandedId(id);
-                    document.getElementById(`property-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }}
-                  zoomTo={selectedMapId ? (() => {
-                    const p = properties.find(pr => pr.id === selectedMapId);
-                    return p?.latitude && p?.longitude ? { lat: p.latitude, lng: p.longitude } : null;
-                  })() : null}
-                />
-              </Map>
-            </APIProvider>
-          </div>
-        )}
-      </div>
-
-      {/* Property list */}
-      <div className="px-4 pb-24 space-y-2">
-        {properties.length === 0 && (
-          <div className="text-center py-8">
-            <div className="text-sm text-gray-600 mb-3">No properties loaded yet.</div>
-            <button
-              onClick={seedProperties}
-              disabled={seeding}
-              className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
-            >
-              {seeding ? "Seeding..." : "Seed Cove Neck Properties"}
-            </button>
-          </div>
-        )}
-
-        {sortedProperties.map((property) => (
-          <div key={property.id} id={`property-${property.id}`}>
-            <PropertyCard
-              property={property}
-              isExpanded={expandedId === property.id}
-              onToggle={() => {
-                const opening = expandedId !== property.id;
-                setExpandedId(opening ? property.id : null);
-                setSelectedMapId(opening ? property.id : null);
-                if (opening) setShowMap(true);
-              }}
-              onUpdate={updateProperty}
+          {/* Search bar */}
+          <div className="relative mb-2">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Filter by address..."
+              className="w-full text-[12px] bg-gray-800 border border-gray-700 rounded-md pl-8 pr-3 py-1.5 text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
-        ))}
 
-        {filteredProperties.length === 0 && properties.length > 0 && (
-          <div className="text-center py-6 text-sm text-gray-500">
-            No properties match the &quot;{filter}&quot; filter.
+          {/* Filter chips */}
+          <div className="flex gap-1 flex-wrap">
+            {([
+              ["all", "All"],
+              ["not_checked", "Not Checked"],
+              ["in_progress", "In Progress"],
+              ["cleared", "Cleared"],
+              ["needs_followup", "Follow-up"],
+              ["has_camera", "Cameras"],
+              ["person_of_interest", "Alerts"],
+            ] as [FilterStatus, string][]).map(([key, label]) => {
+              const count = key === "all" ? properties.length : properties.filter((p) => getPropertyStatus(p) === key).length;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setFilter(key)}
+                  className={`text-[10px] px-2 py-1 rounded-md whitespace-nowrap font-medium transition-colors ${
+                    filter === key
+                      ? "bg-white text-gray-900"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-300"
+                  }`}
+                >
+                  {label}
+                  <span className="ml-1 opacity-60">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Property list (scrollable) */}
+        <div className="flex-1 overflow-y-auto">
+          {properties.length === 0 && (
+            <div className="text-center py-8 px-4">
+              <div className="text-sm text-gray-500 mb-3">No properties loaded.</div>
+              <button
+                onClick={seedProperties}
+                disabled={seeding}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
+              >
+                {seeding ? "Seeding..." : "Seed Cove Neck Properties"}
+              </button>
+            </div>
+          )}
+
+          {sortedProperties.map((property) => (
+            <div key={property.id} id={`property-${property.id}`}>
+              <PropertyCard
+                property={property}
+                isExpanded={expandedId === property.id}
+                onToggle={() => handleSidebarToggle(property.id)}
+                onUpdate={updateProperty}
+              />
+            </div>
+          ))}
+
+          {filteredProperties.length === 0 && properties.length > 0 && (
+            <div className="text-center py-6 text-sm text-gray-600">
+              No properties match the current filter.
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="shrink-0 p-3 border-t border-gray-800 flex items-center gap-2">
+          <button
+            onClick={() => setAddingProperty(!addingProperty)}
+            className="flex-1 text-[11px] px-3 py-2 bg-gray-800 text-gray-300 rounded-md hover:bg-gray-700 font-medium transition-colors"
+          >
+            + Add Property
+          </button>
+          <a
+            href="/"
+            className="text-[11px] px-3 py-2 bg-gray-800 text-gray-400 rounded-md hover:bg-gray-700 hover:text-gray-300 transition-colors"
+          >
+            Ops Hub
+          </a>
+        </div>
+
+        {/* Add property popover */}
+        {addingProperty && (
+          <div className="absolute bottom-14 left-3 right-3 z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-3">
+            <div className="text-[12px] font-semibold text-gray-300 mb-2">Add Property</div>
+            <AddressSearch
+              onSelect={(result) => addProperty(result)}
+              placeholder="Search address on Cove Neck..."
+            />
+            <button onClick={() => setAddingProperty(false)} className="text-[10px] text-gray-500 mt-2 hover:text-gray-300">
+              Cancel
+            </button>
           </div>
         )}
       </div>
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-4 right-4 z-20 flex flex-col gap-2">
-        {properties.length > 0 && !addingProperty && (
-          <button
-            onClick={seedProperties}
-            disabled={seeding}
-            className="w-12 h-12 bg-gray-600 text-white rounded-full shadow-lg hover:bg-gray-700 flex items-center justify-center text-lg disabled:opacity-50"
-            title="Seed more properties"
-          >
-            {seeding ? "..." : "+S"}
-          </button>
-        )}
-        <button
-          onClick={() => setAddingProperty(!addingProperty)}
-          className="w-14 h-14 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 flex items-center justify-center text-2xl font-light"
-          title="Add property"
-        >
-          {addingProperty ? "X" : "+"}
-        </button>
-      </div>
-
-      {/* Add property panel */}
-      {addingProperty && (
-        <div className="fixed bottom-20 right-4 z-20 bg-white border border-gray-200 rounded-xl shadow-xl p-4 w-80">
-          <div className="text-sm font-semibold text-gray-900 mb-2">Add Property</div>
-          <AddressSearch
-            onSelect={(result) => addProperty(result)}
-            placeholder="Search address on Cove Neck..."
-          />
-          <button onClick={() => setAddingProperty(false)} className="text-[10px] text-gray-500 mt-2 hover:text-gray-700">
-            Cancel
-          </button>
-        </div>
+      {/* Sidebar backdrop on mobile */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
 
-      {/* Field Guide Modal */}
-      {showGuide && <FieldGuide onClose={() => setShowGuide(false)} />}
+      {/* RIGHT: FULL MAP */}
+      <div className="flex-1 relative">
+        {apiKey ? (
+          <APIProvider apiKey={apiKey}>
+            <Map
+              defaultCenter={COVE_NECK_CENTER}
+              defaultZoom={14}
+              mapId="cove-neck-ops-map"
+              mapTypeId="satellite"
+              disableDefaultUI
+              zoomControl
+              style={{ width: "100%", height: "100%" }}
+            >
+              <CoveNeckMapContent
+                properties={properties}
+                selectedId={selectedMapId}
+                onSelectProperty={handleMapSelect}
+                zoomTo={zoomTarget}
+                showCameras={showCameras}
+                showPolygon={showPolygon}
+              />
+              <MapController
+                mapType={mapType}
+                streetViewOn={streetViewOn}
+                selectedProperty={selectedProperty}
+              />
+            </Map>
+          </APIProvider>
+        ) : (
+          <div className="w-full h-full bg-gray-900 flex items-center justify-center text-gray-500 text-sm">
+            Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to load map
+          </div>
+        )}
+
+        {/* Map Controls Overlay */}
+        <MapControls
+          mapType={mapType}
+          onMapType={setMapType}
+          streetViewOn={streetViewOn}
+          onStreetView={() => setStreetViewOn(!streetViewOn)}
+          showCameras={showCameras}
+          onToggleCameras={() => setShowCameras(!showCameras)}
+          showPolygon={showPolygon}
+          onTogglePolygon={() => setShowPolygon(!showPolygon)}
+        />
+      </div>
     </div>
   );
 }
