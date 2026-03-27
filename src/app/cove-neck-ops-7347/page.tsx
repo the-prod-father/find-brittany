@@ -321,11 +321,11 @@ function CoveNeckMapContent({
       if (!polygonRef.current) {
         polygonRef.current = new google.maps.Polygon({
           paths: COVE_NECK_POLYGON,
-          strokeColor: "#ef4444",
-          strokeOpacity: 0.8,
-          strokeWeight: 2,
-          fillColor: "#ef4444",
-          fillOpacity: 0.08,
+          strokeColor: "#00e5ff",
+          strokeOpacity: 0.9,
+          strokeWeight: 3,
+          fillColor: "#00e5ff",
+          fillOpacity: 0.06,
           map,
         });
       } else {
