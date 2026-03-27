@@ -921,7 +921,10 @@ export default function CoveNeckOps() {
   // Select property from map marker
   const handleMapSelect = (id: string) => {
     setSelectedMapId(id);
+    setSelectedCamId(null);
     setExpandedId(id);
+    setShowCameraList(false);
+    setFilter("all");
     // Open sidebar on mobile
     setSidebarOpen(true);
     // Scroll to property in sidebar
@@ -935,6 +938,8 @@ export default function CoveNeckOps() {
     const opening = expandedId !== id;
     setExpandedId(opening ? id : null);
     setSelectedMapId(opening ? id : null);
+    setSelectedCamId(null);
+    setShowCameraList(false);
   };
 
   if (loading) {
