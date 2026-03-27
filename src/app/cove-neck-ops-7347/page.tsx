@@ -232,6 +232,17 @@ const SEED_PROPERTIES = [
   { address: "151 Coopers Bluff Lane, Oyster Bay, NY", latitude: 40.8906231, longitude: -73.4981341, priority: "medium" },
 ].map(p => ({ ...p, notes: JSON.stringify({ checklist: {}, notes: "", property_type: "residential", structures: [], checked_by: "" }) }));
 
+// Flock Safety ALPR cameras in the Oyster Bay / Cove Neck area (from OpenStreetMap)
+const AREA_CAMERAS = [
+  { lat: 40.870929, lng: -73.504971, label: "Flock ALPR — Cove Neck Rd Entrance", critical: true },
+  { lat: 40.871099, lng: -73.524209, label: "Flock ALPR — Oyster Bay (East Main St area)" },
+  { lat: 40.873878, lng: -73.539399, label: "Flock ALPR — West (South St area)" },
+  { lat: 40.860722, lng: -73.521884, label: "Flock ALPR — South (Shore area)" },
+  { lat: 40.901693, lng: -73.548783, label: "Flock ALPR — North (Bayville area)" },
+  { lat: 40.840209, lng: -73.515200, label: "Flock ALPR — South (Cove Rd area)" },
+  { lat: 40.841756, lng: -73.501530, label: "Flock ALPR — Southeast" },
+];
+
 // ============================================
 // HELPERS
 // ============================================
@@ -324,6 +335,7 @@ function CoveNeckMapContent({
 
   return (
     <>
+      {/* Property markers */}
       {properties.map((prop) => {
         if (!prop.latitude || !prop.longitude) return null;
         const status = getPropertyStatus(prop);
@@ -343,6 +355,17 @@ function CoveNeckMapContent({
           </AdvancedMarker>
         );
       })}
+      {/* ALPR Camera markers */}
+      {AREA_CAMERAS.map((cam, i) => (
+        <AdvancedMarker key={`cam-${i}`} position={{ lat: cam.lat, lng: cam.lng }}>
+          <div
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md shadow-lg text-[9px] font-bold whitespace-nowrap ${cam.critical ? "bg-yellow-400 text-black" : "bg-blue-500 text-white"}`}
+            title={cam.label}
+          >
+            <span>CAM</span>
+          </div>
+        </AdvancedMarker>
+      ))}
     </>
   );
 }
@@ -756,6 +779,15 @@ export default function CoveNeckOps() {
     await fetchProperties();
     setSeeding(false);
   }, [properties.length, fetchProperties]);
+
+  // Auto-seed on first visit if no properties exist
+  const autoSeeded = useRef(false);
+  useEffect(() => {
+    if (!loading && properties.length === 0 && !autoSeeded.current && !seeding) {
+      autoSeeded.current = true;
+      seedProperties();
+    }
+  }, [loading, properties.length, seeding, seedProperties]);
 
   const filteredProperties = properties.filter((p) => {
     if (filter === "all") return true;
