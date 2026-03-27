@@ -37,19 +37,20 @@ export async function POST(request: NextRequest) {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      const prompt = `You are assisting a MISSING PERSONS search in Cove Neck, Oyster Bay, NY. A woman (32) has been missing 7 days in late March, last seen panicked/psychotic, may be hiding in vacant properties.
+      const prompt = `You are a detective surveilling a property from overhead during a missing persons search. A disoriented woman has been missing 7 days in this area (Cove Neck, Oyster Bay, NY — late March). She may be sheltering in vacant or seasonal properties.
 
-Analyze this satellite image of: ${address || `${latitude}, ${longitude}`}
+Look at this satellite image of: ${address || `${latitude}, ${longitude}`}
 
-Give a concise FIELD BRIEFING:
-- STRUCTURES: Every building/structure visible and their positions
-- HIDING SPOTS: Outbuildings, dense trees, covered areas, boats
-- ACCESS: Driveways, paths, gates, waterfront
-- VACANCY SIGNS: No cars, covered pool, yard state
-- CAMERAS: Where to look for Ring/Nest/security cameras
-- DON'T MISS: Top priority items for the search team
+Tell me what you see like a detective would brief their partner. Plain language, no jargon. No markdown formatting — just plain text with line breaks.
 
-One-line summary first, then short bullets. Under 150 words. Be direct.`;
+Cover these in this order:
+- What's on this property? Count the structures. Main house, any outbuildings, sheds, pool houses, garages — where are they relative to each other?
+- How many ways in and out? Driveways, footpaths, waterfront access?
+- Does it look occupied or vacant? Cars in the driveway? Yard maintained?
+- Where would someone hide here? Think sheds, dense tree cover, under decks, boats
+- Where would cameras likely be? Doorbell, driveway, garage
+
+Keep it to 100 words max. No headers, no bullet markers, no asterisks. Just short declarative sentences separated by line breaks.`;
 
       const result = await model.generateContent([
         prompt,

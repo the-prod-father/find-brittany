@@ -8,6 +8,7 @@ import {
   useMap,
 } from "@vis.gl/react-google-maps";
 import AddressSearch from "@/components/AddressSearch";
+import ReactMarkdown from "react-markdown";
 
 // ============================================
 // TYPES & CONSTANTS
@@ -675,8 +676,8 @@ function PropertyCard({
                     {analyzing ? "Analyzing..." : "Re-run"}
                   </button>
                 </div>
-                <div className="text-[11px] text-gray-300 leading-relaxed bg-gray-900/60 border border-gray-700/50 rounded-md p-2.5 whitespace-pre-wrap">
-                  {aiAnalysis}
+                <div className="text-[11px] text-gray-300 leading-relaxed bg-gray-900/60 border border-gray-700/50 rounded-md p-2.5 prose prose-invert prose-xs max-w-none [&_p]:my-1 [&_li]:my-0.5 [&_ul]:my-1 [&_strong]:text-cyan-300">
+                  <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                 </div>
               </div>
             ) : (
