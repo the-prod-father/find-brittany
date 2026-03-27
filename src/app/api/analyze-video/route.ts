@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const mimeType = fileRes.headers.get("content-type") || "video/mp4";
 
     // Send entire video to Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent([
       {
@@ -73,7 +73,7 @@ Keep it SHORT. No paragraphs. No filler. Bullet points only.`,
     // Track usage
     trackUsage({
       service: "gemini",
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       endpoint: "/api/analyze-video",
       evidence_id,
       input_tokens: usage?.promptTokenCount || Math.ceil(base64.length / 4),

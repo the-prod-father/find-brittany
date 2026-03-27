@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     // Send to Gemini for analysis
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `You are assisting a MISSING PERSONS search in Cove Neck, Oyster Bay, NY. A woman (32) has been missing 7 days in late March, last seen panicked/psychotic, may be hiding in vacant properties.
 
