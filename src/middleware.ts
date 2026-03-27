@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const VALID_USER = process.env.COVE_NECK_USER || "cnwatch";
-const VALID_PASS = process.env.COVE_NECK_PASS || "marsh-heron-47";
+const VALID_USER = (process.env.COVE_NECK_USER || "cnwatch").trim();
+const VALID_PASS = (process.env.COVE_NECK_PASS || "marsh-heron-47").trim();
 
 // Simple deterministic token from credentials (Edge-compatible, no Node crypto)
 function simpleHash(str: string): string {

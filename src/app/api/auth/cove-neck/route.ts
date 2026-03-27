@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const VALID_USER = process.env.COVE_NECK_USER || "cnwatch";
-const VALID_PASS = process.env.COVE_NECK_PASS || "marsh-heron-47";
+const VALID_USER = (process.env.COVE_NECK_USER || "cnwatch").trim();
+const VALID_PASS = (process.env.COVE_NECK_PASS || "marsh-heron-47").trim();
 
 // Must match middleware's simpleHash exactly
 function simpleHash(str: string): string {
