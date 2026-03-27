@@ -96,20 +96,141 @@ const COVE_NECK_POLYGON = [
 
 const COVE_NECK_CENTER = { lat: 40.886, lng: -73.499 };
 
-// Initial seed properties for Cove Neck
+// Real addresses from OpenStreetMap — 121 properties in Cove Neck area
 const SEED_PROPERTIES = [
-  { address: "Cove Neck Rd & Centre Island Rd — CHOKEPOINT", latitude: 40.8812, longitude: -73.5048, priority: "critical", notes: JSON.stringify({ checklist: {}, notes: "CRITICAL: Only road in/out of peninsula. All foot/vehicle traffic must cross this point. Deploy surveillance here.", property_type: "chokepoint", structures: ["road junction", "residential homes with possible cameras"], checked_by: "" }) },
-  { address: "20 Sagamore Hill Rd — Sagamore Hill NHS", latitude: 40.8853, longitude: -73.4968, priority: "critical", notes: JSON.stringify({ checklist: {}, notes: "National Park Service property. Theodore Roosevelt historic site. Multiple buildings: main house, Old Orchard Museum, maintenance buildings, carriage house. Extensive wooded trails. Contact NPS Site Manager. Check if gates were secured night of March 20.", property_type: "nps", structures: ["main house", "museum", "carriage house", "maintenance buildings", "wooded trails", "visitor center"], checked_by: "" }) },
-  { address: "Cove Neck Rd — South (near entrance)", latitude: 40.8822, longitude: -73.5030, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — South-Central", latitude: 40.8835, longitude: -73.5010, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — Central", latitude: 40.8848, longitude: -73.4995, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — Mid-Peninsula", latitude: 40.8862, longitude: -73.4978, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — North-Central", latitude: 40.8878, longitude: -73.4960, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — North", latitude: 40.8895, longitude: -73.4945, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Cove Neck Rd — Peninsula Tip", latitude: 40.8915, longitude: -73.4938, priority: "high", notes: JSON.stringify({ checklist: {}, notes: "Northernmost point of peninsula. Most isolated. Check waterfront access points.", property_type: "estate", structures: [], checked_by: "" }) },
-  { address: "Western Shoreline — Cold Spring Harbor side", latitude: 40.8870, longitude: -73.5035, priority: "medium", notes: JSON.stringify({ checklist: {}, notes: "Check waterfront. Docks, beaches, boathouses. Look for signs of water access.", property_type: "waterfront", structures: ["shoreline", "possible docks"], checked_by: "" }) },
-  { address: "Eastern Shoreline — Oyster Bay Harbor side", latitude: 40.8855, longitude: -73.4935, priority: "medium", notes: JSON.stringify({ checklist: {}, notes: "Check waterfront. Docks, beaches, boathouses. Look for signs of water access.", property_type: "waterfront", structures: ["shoreline", "possible docks"], checked_by: "" }) },
-];
+  // Cove Neck Road (78 properties)
+  { address: "1 Cove Neck Road, Oyster Bay, NY", latitude: 40.8714356, longitude: -73.5061536, priority: "high" },
+  { address: "2 Cove Neck Road, Oyster Bay, NY", latitude: 40.8709727, longitude: -73.5045823, priority: "high" },
+  { address: "3 Cove Neck Road, Oyster Bay, NY", latitude: 40.8718626, longitude: -73.503591, priority: "high" },
+  { address: "4 Cove Neck Road, Oyster Bay, NY", latitude: 40.8719676, longitude: -73.5047931, priority: "high" },
+  { address: "6 Cove Neck Road, Oyster Bay, NY", latitude: 40.871982, longitude: -73.5018765, priority: "high" },
+  { address: "14 Cove Neck Road, Oyster Bay, NY", latitude: 40.8743652, longitude: -73.5012222, priority: "high" },
+  { address: "16 Cove Neck Road, Oyster Bay, NY", latitude: 40.8735691, longitude: -73.5007036, priority: "high" },
+  { address: "20 Cove Neck Road, Oyster Bay, NY", latitude: 40.8751318, longitude: -73.5017452, priority: "high" },
+  { address: "22 Cove Neck Road, Oyster Bay, NY", latitude: 40.8753829, longitude: -73.5018812, priority: "high" },
+  { address: "24 Cove Neck Road, Oyster Bay, NY", latitude: 40.8755833, longitude: -73.5019205, priority: "high" },
+  { address: "26 Cove Neck Road, Oyster Bay, NY", latitude: 40.8775296, longitude: -73.4991811, priority: "high" },
+  { address: "30 Cove Neck Road, Oyster Bay, NY", latitude: 40.8764501, longitude: -73.5025231, priority: "high" },
+  { address: "40 Cove Neck Road, Oyster Bay, NY", latitude: 40.8772457, longitude: -73.5032295, priority: "high" },
+  { address: "45 Cove Neck Road, Oyster Bay, NY", latitude: 40.8818336, longitude: -73.5073771, priority: "high" },
+  { address: "49 Cove Neck Road, Oyster Bay, NY", latitude: 40.8840113, longitude: -73.5078117, priority: "high" },
+  { address: "53 Cove Neck Road, Oyster Bay, NY", latitude: 40.8851211, longitude: -73.5072656, priority: "high" },
+  { address: "55 Cove Neck Road, Oyster Bay, NY", latitude: 40.8852786, longitude: -73.5085246, priority: "high" },
+  { address: "59 Cove Neck Road, Oyster Bay, NY", latitude: 40.8862191, longitude: -73.5066741, priority: "high" },
+  { address: "61 Cove Neck Road, Oyster Bay, NY", latitude: 40.8872971, longitude: -73.5099548, priority: "high" },
+  { address: "62 Cove Neck Road, Oyster Bay, NY", latitude: 40.8841621, longitude: -73.5056371, priority: "high" },
+  { address: "63 Cove Neck Road, Oyster Bay, NY", latitude: 40.8874821, longitude: -73.5103756, priority: "high" },
+  { address: "64 Cove Neck Road, Oyster Bay, NY", latitude: 40.8849886, longitude: -73.5058736, priority: "high" },
+  { address: "65 Cove Neck Road, Oyster Bay, NY", latitude: 40.8865275, longitude: -73.5090771, priority: "high" },
+  { address: "66 Cove Neck Road, Oyster Bay, NY", latitude: 40.8853211, longitude: -73.5040611, priority: "high" },
+  { address: "67 Cove Neck Road, Oyster Bay, NY", latitude: 40.8893634, longitude: -73.5089733, priority: "high" },
+  { address: "68 Cove Neck Road, Oyster Bay, NY", latitude: 40.8858576, longitude: -73.5043481, priority: "high" },
+  { address: "70 Cove Neck Road, Oyster Bay, NY", latitude: 40.8860215, longitude: -73.5057011, priority: "high" },
+  { address: "72 Cove Neck Road, Oyster Bay, NY", latitude: 40.8865416, longitude: -73.5056616, priority: "high" },
+  { address: "73 Cove Neck Road, Oyster Bay, NY", latitude: 40.8884196, longitude: -73.5078556, priority: "high" },
+  { address: "75 Cove Neck Road, Oyster Bay, NY", latitude: 40.8897989, longitude: -73.5085863, priority: "high" },
+  { address: "76 Cove Neck Road, Oyster Bay, NY", latitude: 40.8863616, longitude: -73.5036861, priority: "high" },
+  { address: "77 Cove Neck Road, Oyster Bay, NY", latitude: 40.8889171, longitude: -73.5073941, priority: "high" },
+  { address: "78 Cove Neck Road, Oyster Bay, NY", latitude: 40.8873126, longitude: -73.5046536, priority: "high" },
+  { address: "79 Cove Neck Road, Oyster Bay, NY", latitude: 40.8895267, longitude: -73.5078934, priority: "high" },
+  { address: "80 Cove Neck Road, Oyster Bay, NY", latitude: 40.8871881, longitude: -73.5056161, priority: "high" },
+  { address: "81 Cove Neck Road, Oyster Bay, NY", latitude: 40.8900971, longitude: -73.508084, priority: "high" },
+  { address: "82 Cove Neck Road, Oyster Bay, NY", latitude: 40.8870991, longitude: -73.5053911, priority: "high" },
+  { address: "83 Cove Neck Road, Oyster Bay, NY", latitude: 40.8903299, longitude: -73.5075315, priority: "high" },
+  { address: "84 Cove Neck Road, Oyster Bay, NY", latitude: 40.8880688, longitude: -73.5055028, priority: "high" },
+  { address: "85 Cove Neck Road, Oyster Bay, NY", latitude: 40.8888496, longitude: -73.5062301, priority: "high" },
+  { address: "86 Cove Neck Road, Oyster Bay, NY", latitude: 40.8882961, longitude: -73.5038961, priority: "high" },
+  { address: "87 Cove Neck Road, Oyster Bay, NY", latitude: 40.8899011, longitude: -73.5064986, priority: "high" },
+  { address: "89 Cove Neck Road, Oyster Bay, NY", latitude: 40.8900497, longitude: -73.5060298, priority: "high" },
+  { address: "91 Cove Neck Road, Oyster Bay, NY", latitude: 40.8930631, longitude: -73.507951, priority: "high" },
+  { address: "93 Cove Neck Road, Oyster Bay, NY", latitude: 40.8915098, longitude: -73.505606, priority: "high" },
+  { address: "95 Cove Neck Road, Oyster Bay, NY", latitude: 40.8923617, longitude: -73.5056632, priority: "high" },
+  { address: "99 Cove Neck Road, Oyster Bay, NY", latitude: 40.8931906, longitude: -73.5060846, priority: "high" },
+  { address: "100 Cove Neck Road, Oyster Bay, NY", latitude: 40.8900653, longitude: -73.5049792, priority: "high" },
+  { address: "101 Cove Neck Road, Oyster Bay, NY", latitude: 40.8926066, longitude: -73.5047126, priority: "high" },
+  { address: "105 Cove Neck Road, Oyster Bay, NY", latitude: 40.8910588, longitude: -73.5044795, priority: "high" },
+  { address: "107 Cove Neck Road, Oyster Bay, NY", latitude: 40.8912873, longitude: -73.504466, priority: "high" },
+  { address: "109 Cove Neck Road, Oyster Bay, NY", latitude: 40.8909681, longitude: -73.5034691, priority: "high" },
+  { address: "111 Cove Neck Road, Oyster Bay, NY", latitude: 40.8916771, longitude: -73.5028946, priority: "high" },
+  { address: "113 Cove Neck Road, Oyster Bay, NY", latitude: 40.8938665, longitude: -73.5046171, priority: "high" },
+  { address: "115 Cove Neck Road, Oyster Bay, NY", latitude: 40.8925656, longitude: -73.5037151, priority: "high" },
+  { address: "117 Cove Neck Road, Oyster Bay, NY", latitude: 40.8920881, longitude: -73.5018106, priority: "high" },
+  { address: "119 Cove Neck Road, Oyster Bay, NY", latitude: 40.8936626, longitude: -73.5031391, priority: "high" },
+  { address: "123 Cove Neck Road, Oyster Bay, NY", latitude: 40.8929271, longitude: -73.5010855, priority: "high" },
+  { address: "125 Cove Neck Road, Oyster Bay, NY", latitude: 40.8938596, longitude: -73.5015106, priority: "high" },
+  { address: "129 Cove Neck Road, Oyster Bay, NY", latitude: 40.8904351, longitude: -73.5028926, priority: "high" },
+  { address: "133 Cove Neck Road, Oyster Bay, NY", latitude: 40.8925874, longitude: -73.5007047, priority: "high" },
+  { address: "134 Cove Neck Road, Oyster Bay, NY", latitude: 40.8895371, longitude: -73.5036788, priority: "high" },
+  { address: "135 Cove Neck Road, Oyster Bay, NY", latitude: 40.8941521, longitude: -73.4997971, priority: "high" },
+  { address: "136 Cove Neck Road, Oyster Bay, NY", latitude: 40.8892421, longitude: -73.5025786, priority: "high" },
+  { address: "137 Cove Neck Road, Oyster Bay, NY", latitude: 40.8935141, longitude: -73.4985351, priority: "high" },
+  { address: "140 Cove Neck Road, Oyster Bay, NY", latitude: 40.8893241, longitude: -73.5014201, priority: "high" },
+  { address: "145 Cove Neck Road, Oyster Bay, NY", latitude: 40.8908054, longitude: -73.499929, priority: "high" },
+  { address: "147 Cove Neck Road, Oyster Bay, NY", latitude: 40.8901911, longitude: -73.4991956, priority: "high" },
+  { address: "149 Cove Neck Road, Oyster Bay, NY", latitude: 40.8915856, longitude: -73.4990226, priority: "high" },
+  { address: "153 Cove Neck Road, Oyster Bay, NY", latitude: 40.8916676, longitude: -73.4976256, priority: "high" },
+  { address: "154 Cove Neck Road, Oyster Bay, NY", latitude: 40.8919216, longitude: -73.4959706, priority: "high" },
+  { address: "156 Cove Neck Road, Oyster Bay, NY", latitude: 40.8924065, longitude: -73.4935357, priority: "high" },
+  { address: "158 Cove Neck Road, Oyster Bay, NY", latitude: 40.8931561, longitude: -73.4951776, priority: "high" },
+  { address: "159 Cove Neck Road, Oyster Bay, NY", latitude: 40.8943173, longitude: -73.4970402, priority: "high" },
+  { address: "161 Cove Neck Road, Oyster Bay, NY", latitude: 40.8943411, longitude: -73.4951576, priority: "high" },
+  { address: "164 Cove Neck Road, Oyster Bay, NY", latitude: 40.8908781, longitude: -73.4962191, priority: "high" },
+  // Sagamore Hill Road (NPS + residential)
+  { address: "1 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8835046, longitude: -73.5054386, priority: "high" },
+  { address: "2 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8820501, longitude: -73.5044456, priority: "high" },
+  { address: "3 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8848296, longitude: -73.5035836, priority: "high" },
+  { address: "6 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.883364, longitude: -73.5028199, priority: "high" },
+  { address: "8 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8834991, longitude: -73.5014256, priority: "high" },
+  { address: "10 Sagamore Hill Road — Sagamore Hill NHS", latitude: 40.8855768, longitude: -73.5010727, priority: "critical" },
+  { address: "20 Sagamore Hill Road — Old Orchard Museum", latitude: 40.8859133, longitude: -73.495962, priority: "critical" },
+  { address: "5 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8885201, longitude: -73.4934946, priority: "high" },
+  { address: "146 Sagamore Hill Road, Oyster Bay, NY", latitude: 40.8888576, longitude: -73.4999536, priority: "high" },
+  // Tennis Court Road
+  { address: "2 Tennis Court Road, Oyster Bay, NY", latitude: 40.8788191, longitude: -73.5039151, priority: "medium" },
+  { address: "4 Tennis Court Road, Oyster Bay, NY", latitude: 40.8799856, longitude: -73.5020066, priority: "medium" },
+  { address: "5 Tennis Court Road, Oyster Bay, NY", latitude: 40.8801791, longitude: -73.5002201, priority: "medium" },
+  { address: "7 Tennis Court Road, Oyster Bay, NY", latitude: 40.8825441, longitude: -73.4978151, priority: "medium" },
+  { address: "8 Tennis Court Road, Oyster Bay, NY", latitude: 40.8789856, longitude: -73.4979401, priority: "medium" },
+  { address: "10 Tennis Court Road, Oyster Bay, NY", latitude: 40.8801156, longitude: -73.4979766, priority: "medium" },
+  { address: "12 Tennis Court Road, Oyster Bay, NY", latitude: 40.8800636, longitude: -73.4972306, priority: "medium" },
+  { address: "14 Tennis Court Road, Oyster Bay, NY", latitude: 40.8797966, longitude: -73.4965156, priority: "medium" },
+  { address: "15 Tennis Court Road, Oyster Bay, NY", latitude: 40.8808406, longitude: -73.4982951, priority: "medium" },
+  { address: "16 Tennis Court Road, Oyster Bay, NY", latitude: 40.8797251, longitude: -73.4955906, priority: "medium" },
+  { address: "17 Tennis Court Road, Oyster Bay, NY", latitude: 40.8815861, longitude: -73.4970711, priority: "medium" },
+  { address: "18 Tennis Court Road, Oyster Bay, NY", latitude: 40.8802436, longitude: -73.4936226, priority: "medium" },
+  { address: "20 Tennis Court Road, Oyster Bay, NY", latitude: 40.8806381, longitude: -73.4916741, priority: "medium" },
+  { address: "21 Tennis Court Road, Oyster Bay, NY", latitude: 40.8807624, longitude: -73.4966824, priority: "medium" },
+  { address: "22 Tennis Court Road, Oyster Bay, NY", latitude: 40.8811686, longitude: -73.4911416, priority: "medium" },
+  { address: "23 Tennis Court Road, Oyster Bay, NY", latitude: 40.8815921, longitude: -73.4958916, priority: "medium" },
+  { address: "24 Tennis Court Road, Oyster Bay, NY", latitude: 40.8815801, longitude: -73.4916991, priority: "medium" },
+  { address: "25 Tennis Court Road, Oyster Bay, NY", latitude: 40.8808726, longitude: -73.4957401, priority: "medium" },
+  { address: "26 Tennis Court Road, Oyster Bay, NY", latitude: 40.8822841, longitude: -73.4919836, priority: "medium" },
+  { address: "27 Tennis Court Road, Oyster Bay, NY", latitude: 40.8805191, longitude: -73.4944616, priority: "medium" },
+  { address: "28 Tennis Court Road, Oyster Bay, NY", latitude: 40.8828361, longitude: -73.4919816, priority: "medium" },
+  { address: "29 Tennis Court Road, Oyster Bay, NY", latitude: 40.8809011, longitude: -73.4950231, priority: "medium" },
+  { address: "30 Tennis Court Road, Oyster Bay, NY", latitude: 40.8813686, longitude: -73.4928401, priority: "medium" },
+  { address: "31 Tennis Court Road, Oyster Bay, NY", latitude: 40.8817336, longitude: -73.4940761, priority: "medium" },
+  { address: "32 Tennis Court Road, Oyster Bay, NY", latitude: 40.8819521, longitude: -73.4927816, priority: "medium" },
+  { address: "33 Tennis Court Road, Oyster Bay, NY", latitude: 40.8817756, longitude: -73.4953006, priority: "medium" },
+  { address: "35 Tennis Court Road, Oyster Bay, NY", latitude: 40.8822136, longitude: -73.4940871, priority: "medium" },
+  // Other side streets
+  { address: "1 Gracewood Court, Oyster Bay, NY", latitude: 40.8811501, longitude: -73.5038021, priority: "medium" },
+  { address: "2 Gracewood Court, Oyster Bay, NY", latitude: 40.8798901, longitude: -73.5032646, priority: "medium" },
+  { address: "3 Gracewood Court, Oyster Bay, NY", latitude: 40.8818561, longitude: -73.5029086, priority: "medium" },
+  { address: "5 Gracewood Court, Oyster Bay, NY", latitude: 40.8821716, longitude: -73.5024716, priority: "medium" },
+  { address: "7 Gracewood Court, Oyster Bay, NY", latitude: 40.8824196, longitude: -73.5021786, priority: "medium" },
+  { address: "9 Gracewood Court, Oyster Bay, NY", latitude: 40.8813536, longitude: -73.5017891, priority: "medium" },
+  { address: "2 Elfland Court, Oyster Bay, NY", latitude: 40.8819011, longitude: -73.4990466, priority: "medium" },
+  { address: "5 Elfland Court, Oyster Bay, NY", latitude: 40.8821506, longitude: -73.5011581, priority: "medium" },
+  { address: "6 Elfland Court, Oyster Bay, NY", latitude: 40.8840126, longitude: -73.4989016, priority: "medium" },
+  { address: "8 Elfland Court, Oyster Bay, NY", latitude: 40.8839051, longitude: -73.5003956, priority: "medium" },
+  { address: "10 Elfland Court, Oyster Bay, NY", latitude: 40.8825111, longitude: -73.4990996, priority: "medium" },
+  { address: "16 Elfland Court, Oyster Bay, NY", latitude: 40.8816826, longitude: -73.5001581, priority: "medium" },
+  { address: "9 Valley Road, Oyster Bay, NY", latitude: 40.8839076, longitude: -73.4939601, priority: "medium" },
+  { address: "11 Valley Road, Oyster Bay, NY", latitude: 40.8841304, longitude: -73.4925856, priority: "medium" },
+  { address: "139 Coopers Bluff Lane, Oyster Bay, NY", latitude: 40.8933321, longitude: -73.4979081, priority: "medium" },
+  { address: "151 Coopers Bluff Lane, Oyster Bay, NY", latitude: 40.8906231, longitude: -73.4981341, priority: "medium" },
+].map(p => ({ ...p, notes: JSON.stringify({ checklist: {}, notes: "", property_type: "residential", structures: [], checked_by: "" }) }));
 
 // ============================================
 // HELPERS
@@ -160,10 +281,12 @@ function CoveNeckMapContent({
   properties,
   selectedId,
   onSelectProperty,
+  zoomTo,
 }: {
   properties: CanvassProperty[];
   selectedId: string | null;
   onSelectProperty: (id: string) => void;
+  zoomTo: { lat: number; lng: number } | null;
 }) {
   const map = useMap();
   const polygonRef = useRef<google.maps.Polygon | null>(null);
@@ -191,6 +314,13 @@ function CoveNeckMapContent({
       }
     };
   }, [map]);
+
+  // Zoom to selected property
+  useEffect(() => {
+    if (!map || !zoomTo) return;
+    map.panTo(zoomTo);
+    map.setZoom(19);
+  }, [map, zoomTo]);
 
   return (
     <>
@@ -778,6 +908,10 @@ export default function CoveNeckOps() {
                     setExpandedId(id);
                     document.getElementById(`property-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
+                  zoomTo={selectedMapId ? (() => {
+                    const p = properties.find(pr => pr.id === selectedMapId);
+                    return p?.latitude && p?.longitude ? { lat: p.latitude, lng: p.longitude } : null;
+                  })() : null}
                 />
               </Map>
             </APIProvider>
@@ -806,8 +940,10 @@ export default function CoveNeckOps() {
               property={property}
               isExpanded={expandedId === property.id}
               onToggle={() => {
-                setExpandedId(expandedId === property.id ? null : property.id);
-                setSelectedMapId(property.id);
+                const opening = expandedId !== property.id;
+                setExpandedId(opening ? property.id : null);
+                setSelectedMapId(opening ? property.id : null);
+                if (opening) setShowMap(true);
               }}
               onUpdate={updateProperty}
             />

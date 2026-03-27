@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import AdminBar from "@/components/AdminBar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -92,6 +93,7 @@ export default function RootLayout({
         </nav>
 
         <main>{children}</main>
+        <AdminBar />
         <Analytics />
 
         {/* Footer — mobile-optimized */}
