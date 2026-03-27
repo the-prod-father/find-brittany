@@ -113,20 +113,7 @@ interface MapAnnotation {
 
 type DrawMode = "pan" | "draw" | "annotations";
 
-function loadAnnotations(): MapAnnotation[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("cove-neck-annotations");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAnnotations(annotations: MapAnnotation[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("cove-neck-annotations", JSON.stringify(annotations));
-}
+// Annotations now stored in Supabase via /api/annotations
 
 // Real addresses from OpenStreetMap — 121 properties in Cove Neck area
 const SEED_PROPERTIES = [
@@ -1300,7 +1287,7 @@ export default function CoveNeckOps() {
   const [selectedCamId, setSelectedCamId] = useState<string | null>(null);
   const [drawMode, setDrawMode] = useState<DrawMode>("pan");
   const [drawnBounds, setDrawnBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
-  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadAnnotations());
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>([]);
   const [annotationsVisible, setAnnotationsVisible] = useState(true);
   const lastFetch = useRef<number>(0);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -1319,10 +1306,21 @@ export default function CoveNeckOps() {
     }
   }, []);
 
+  const fetchAnnotations = useCallback(async () => {
+    try {
+      const res = await fetch("/api/annotations");
+      const data = await res.json();
+      setAnnotations(data.annotations || []);
+    } catch (err) {
+      console.error("Annotation fetch error:", err);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     fetchProperties();
-  }, [fetchProperties]);
+    fetchAnnotations();
+  }, [fetchProperties, fetchAnnotations]);
 
   // Poll every 30s for real-time updates
   useEffect(() => {
@@ -1458,10 +1456,20 @@ export default function CoveNeckOps() {
     setDrawMode("pan");
   }, []);
 
-  const handlePinAnnotation = useCallback((annotation: MapAnnotation) => {
-    const updated = [...annotations, annotation];
-    setAnnotations(updated);
-    saveAnnotations(updated);
+  const handlePinAnnotation = useCallback(async (annotation: MapAnnotation) => {
+    try {
+      const res = await fetch("/api/annotations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(annotation),
+      });
+      if (res.ok) {
+        const { annotation: saved } = await res.json();
+        setAnnotations(prev => [saved, ...prev]);
+      }
+    } catch (err) {
+      console.error("Failed to save annotation:", err);
+    }
     setDrawnBounds(null);
     setAnnotationsVisible(true);
   }, [annotations]);
@@ -1470,11 +1478,18 @@ export default function CoveNeckOps() {
     setDrawnBounds(null);
   }, []);
 
-  const handleDeleteAnnotation = useCallback((id: string) => {
-    const updated = annotations.filter(a => a.id !== id);
-    setAnnotations(updated);
-    saveAnnotations(updated);
-  }, [annotations]);
+  const handleDeleteAnnotation = useCallback(async (id: string) => {
+    try {
+      await fetch("/api/annotations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    } catch (err) {
+      console.error("Failed to delete annotation:", err);
+    }
+    setAnnotations(prev => prev.filter(a => a.id !== id));
+  }, []);
 
   const handleOpenAnnotation = useCallback((id: string) => {
     // Handled inside DrawingManager
