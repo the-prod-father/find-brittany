@@ -98,6 +98,35 @@ const COVE_NECK_POLYGON = [
 
 const COVE_NECK_CENTER = { lat: 40.886, lng: -73.499 };
 
+// ============================================
+// DRAWING / ANNOTATION TYPES
+// ============================================
+
+interface MapAnnotation {
+  id: string;
+  bounds: { north: number; south: number; east: number; west: number };
+  question: string;
+  response: string;
+  createdAt: string;
+}
+
+type DrawMode = "pan" | "draw" | "annotations";
+
+function loadAnnotations(): MapAnnotation[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("cove-neck-annotations");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAnnotations(annotations: MapAnnotation[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("cove-neck-annotations", JSON.stringify(annotations));
+}
+
 // Real addresses from OpenStreetMap — 121 properties in Cove Neck area
 const SEED_PROPERTIES = [
   // Cove Neck Road (78 properties)
@@ -772,6 +801,435 @@ function PropertyCard({
 }
 
 // ============================================
+// MAP TOOLBAR (left side of map)
+// ============================================
+
+function MapToolbar({
+  drawMode,
+  onSetMode,
+  annotationsVisible,
+  onToggleAnnotations,
+  sidebarOpen,
+}: {
+  drawMode: DrawMode;
+  onSetMode: (m: DrawMode) => void;
+  annotationsVisible: boolean;
+  onToggleAnnotations: () => void;
+  sidebarOpen: boolean;
+}) {
+  const btnBase = "w-9 h-9 flex items-center justify-center rounded-lg transition-all";
+  const btnActive = "bg-cyan-500 text-white shadow-lg";
+  const btnInactive = "bg-black/60 text-gray-300 hover:bg-black/80 hover:text-white";
+
+  return (
+    <div className={`absolute top-3 z-10 flex flex-col gap-1.5 ${sidebarOpen ? "left-3 lg:left-[396px]" : "left-3"} transition-all duration-200`}>
+      {/* Pan */}
+      <button
+        onClick={() => onSetMode("pan")}
+        className={`${btnBase} ${drawMode === "pan" ? btnActive : btnInactive}`}
+        title="Pan (default)"
+      >
+        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v6M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+        </svg>
+      </button>
+      {/* Draw */}
+      <button
+        onClick={() => onSetMode(drawMode === "draw" ? "pan" : "draw")}
+        className={`${btnBase} ${drawMode === "draw" ? btnActive : btnInactive}`}
+        title="Draw rectangle — two clicks to define area"
+      >
+        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4 2" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+      </button>
+      {/* Annotations toggle */}
+      <button
+        onClick={onToggleAnnotations}
+        className={`${btnBase} ${annotationsVisible ? btnActive : btnInactive}`}
+        title={`Annotations ${annotationsVisible ? "ON" : "OFF"}`}
+      >
+        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 2 7 12 12 22 7 12 2" />
+          <polyline points="2 17 12 22 22 17" />
+          <polyline points="2 12 12 17 22 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+// ============================================
+// DRAWING MANAGER (two-click rectangle + AI chat)
+// ============================================
+
+function DrawingManager({
+  drawMode,
+  onFinishDraw,
+  annotations,
+  annotationsVisible,
+  onDeleteAnnotation,
+  onOpenAnnotation,
+  activeBounds,
+}: {
+  drawMode: DrawMode;
+  onFinishDraw: (bounds: { north: number; south: number; east: number; west: number }) => void;
+  annotations: MapAnnotation[];
+  annotationsVisible: boolean;
+  onDeleteAnnotation: (id: string) => void;
+  onOpenAnnotation: (id: string) => void;
+  activeBounds: { north: number; south: number; east: number; west: number } | null;
+}) {
+  const map = useMap();
+  const firstCornerRef = useRef<{ lat: number; lng: number } | null>(null);
+  const [firstCorner, setFirstCorner] = useState<{ lat: number; lng: number } | null>(null);
+  const previewRectRef = useRef<google.maps.Rectangle | null>(null);
+  const firstMarkerRef = useRef<google.maps.Marker | null>(null);
+  const moveListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const annotationRectsRef = useRef<google.maps.Rectangle[]>([]);
+  const annotationLabelsRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const [viewingAnnotation, setViewingAnnotation] = useState<string | null>(null);
+
+  // Handle draw mode click events on the map
+  useEffect(() => {
+    if (!map) return;
+    if (drawMode !== "draw") {
+      // Clean up preview state when leaving draw mode
+      if (previewRectRef.current) { previewRectRef.current.setMap(null); previewRectRef.current = null; }
+      if (firstMarkerRef.current) { firstMarkerRef.current.setMap(null); firstMarkerRef.current = null; }
+      if (moveListenerRef.current) { google.maps.event.removeListener(moveListenerRef.current); moveListenerRef.current = null; }
+      firstCornerRef.current = null;
+      setFirstCorner(null);
+      return;
+    }
+
+    // Set crosshair cursor
+    map.setOptions({ draggableCursor: "crosshair" });
+
+    const clickListener = map.addListener("click", (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng) return;
+      const latLng = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+
+      if (!firstCornerRef.current) {
+        // First click — set corner 1
+        firstCornerRef.current = latLng;
+        setFirstCorner(latLng);
+
+        // Add a small marker at corner 1
+        firstMarkerRef.current = new google.maps.Marker({
+          position: latLng,
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 5,
+            fillColor: "#00e5ff",
+            fillOpacity: 1,
+            strokeColor: "#fff",
+            strokeWeight: 2,
+          },
+        });
+
+        // Preview rectangle on mouse move
+        previewRectRef.current = new google.maps.Rectangle({
+          bounds: { north: latLng.lat, south: latLng.lat, east: latLng.lng, west: latLng.lng },
+          strokeColor: "#00e5ff",
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: "#00e5ff",
+          fillOpacity: 0.15,
+          map,
+          clickable: false,
+        });
+
+        moveListenerRef.current = map.addListener("mousemove", (me: google.maps.MapMouseEvent) => {
+          if (!me.latLng || !firstCornerRef.current || !previewRectRef.current) return;
+          const c1 = firstCornerRef.current;
+          const c2 = { lat: me.latLng.lat(), lng: me.latLng.lng() };
+          previewRectRef.current.setBounds({
+            north: Math.max(c1.lat, c2.lat),
+            south: Math.min(c1.lat, c2.lat),
+            east: Math.max(c1.lng, c2.lng),
+            west: Math.min(c1.lng, c2.lng),
+          });
+        });
+      } else {
+        // Second click — finalize rectangle
+        const c1 = firstCornerRef.current;
+        const c2 = latLng;
+        const bounds = {
+          north: Math.max(c1.lat, c2.lat),
+          south: Math.min(c1.lat, c2.lat),
+          east: Math.max(c1.lng, c2.lng),
+          west: Math.min(c1.lng, c2.lng),
+        };
+
+        // Clean up preview
+        if (previewRectRef.current) { previewRectRef.current.setMap(null); previewRectRef.current = null; }
+        if (firstMarkerRef.current) { firstMarkerRef.current.setMap(null); firstMarkerRef.current = null; }
+        if (moveListenerRef.current) { google.maps.event.removeListener(moveListenerRef.current); moveListenerRef.current = null; }
+        firstCornerRef.current = null;
+        setFirstCorner(null);
+
+        onFinishDraw(bounds);
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(clickListener);
+      map.setOptions({ draggableCursor: null });
+      if (moveListenerRef.current) { google.maps.event.removeListener(moveListenerRef.current); moveListenerRef.current = null; }
+      if (previewRectRef.current) { previewRectRef.current.setMap(null); previewRectRef.current = null; }
+      if (firstMarkerRef.current) { firstMarkerRef.current.setMap(null); firstMarkerRef.current = null; }
+    };
+  }, [map, drawMode, onFinishDraw]);
+
+  // Render saved annotation rectangles
+  useEffect(() => {
+    // Clear existing
+    annotationRectsRef.current.forEach(r => r.setMap(null));
+    annotationRectsRef.current = [];
+    annotationLabelsRef.current.forEach(m => (m.map = null));
+    annotationLabelsRef.current = [];
+
+    if (!map || !annotationsVisible) return;
+
+    annotations.forEach((ann) => {
+      // Rectangle
+      const rect = new google.maps.Rectangle({
+        bounds: ann.bounds,
+        strokeColor: "#00e5ff",
+        strokeOpacity: 0.6,
+        strokeWeight: 2,
+        fillColor: "#00e5ff",
+        fillOpacity: 0.05,
+        map,
+        clickable: true,
+      });
+      rect.addListener("click", () => {
+        setViewingAnnotation(ann.id);
+      });
+      annotationRectsRef.current.push(rect);
+    });
+
+    return () => {
+      annotationRectsRef.current.forEach(r => r.setMap(null));
+      annotationRectsRef.current = [];
+      annotationLabelsRef.current.forEach(m => (m.map = null));
+      annotationLabelsRef.current = [];
+    };
+  }, [map, annotations, annotationsVisible]);
+
+  // Render active bounds rectangle (the one being queried)
+  const activeRectRef = useRef<google.maps.Rectangle | null>(null);
+  useEffect(() => {
+    if (activeRectRef.current) { activeRectRef.current.setMap(null); activeRectRef.current = null; }
+    if (!map || !activeBounds) return;
+    activeRectRef.current = new google.maps.Rectangle({
+      bounds: activeBounds,
+      strokeColor: "#00e5ff",
+      strokeOpacity: 1,
+      strokeWeight: 3,
+      fillColor: "#00e5ff",
+      fillOpacity: 0.2,
+      map,
+      clickable: false,
+    });
+    return () => {
+      if (activeRectRef.current) { activeRectRef.current.setMap(null); activeRectRef.current = null; }
+    };
+  }, [map, activeBounds]);
+
+  const viewedAnnotation = viewingAnnotation ? annotations.find(a => a.id === viewingAnnotation) : null;
+
+  return (
+    <>
+      {/* Annotation labels as AdvancedMarkers */}
+      {annotationsVisible && annotations.map((ann) => {
+        const centerLat = (ann.bounds.north + ann.bounds.south) / 2;
+        const centerLng = (ann.bounds.east + ann.bounds.west) / 2;
+        return (
+          <AdvancedMarker
+            key={`ann-label-${ann.id}`}
+            position={{ lat: centerLat, lng: centerLng }}
+            onClick={() => setViewingAnnotation(ann.id)}
+          >
+            <div className="px-2 py-1 bg-black/80 backdrop-blur-sm text-cyan-300 text-[10px] font-medium rounded shadow-lg cursor-pointer hover:bg-black/90 max-w-[140px] truncate border border-cyan-800/50">
+              {ann.question.length > 30 ? ann.question.slice(0, 30) + "..." : ann.question}
+            </div>
+          </AdvancedMarker>
+        );
+      })}
+
+      {/* Draw mode hint */}
+      {drawMode === "draw" && !firstCorner && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm text-cyan-300 text-[12px] font-medium px-4 py-2 rounded-lg shadow-lg pointer-events-none">
+          Click to set first corner of rectangle
+        </div>
+      )}
+      {drawMode === "draw" && firstCorner && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm text-cyan-300 text-[12px] font-medium px-4 py-2 rounded-lg shadow-lg pointer-events-none">
+          Click to set second corner
+        </div>
+      )}
+
+      {/* Annotation detail popup */}
+      {viewedAnnotation && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[340px] max-w-[90vw] bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+          <div className="p-3 border-b border-gray-700/50 flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">Annotation</span>
+            <button onClick={() => setViewingAnnotation(null)} className="text-gray-500 hover:text-gray-300 text-lg leading-none">&times;</button>
+          </div>
+          <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
+            <div className="text-[12px] text-gray-300 font-medium">{viewedAnnotation.question}</div>
+            <div className="text-[11px] text-gray-400 leading-relaxed prose prose-invert prose-xs max-w-none [&_p]:my-1 [&_li]:my-0.5 [&_ul]:my-1 [&_strong]:text-cyan-300">
+              <ReactMarkdown>{viewedAnnotation.response}</ReactMarkdown>
+            </div>
+            <div className="text-[9px] text-gray-600">{new Date(viewedAnnotation.createdAt).toLocaleString()}</div>
+          </div>
+          <div className="p-3 border-t border-gray-700/50 flex justify-end">
+            <button
+              onClick={() => {
+                onDeleteAnnotation(viewedAnnotation.id);
+                setViewingAnnotation(null);
+              }}
+              className="text-[10px] px-3 py-1.5 bg-red-900/40 text-red-400 border border-red-800 rounded-md hover:bg-red-900/60 font-medium"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ============================================
+// AI CHAT OVERLAY — standalone (no useMap needed)
+// ============================================
+
+function AiChatOverlayStandalone({
+  bounds,
+  onPin,
+  onDismiss,
+}: {
+  bounds: { north: number; south: number; east: number; west: number };
+  onPin: (annotation: MapAnnotation) => void;
+  onDismiss: () => void;
+}) {
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async () => {
+    const q = question.trim() || "What is this?";
+    setLoading(true);
+    setError("");
+    try {
+      const centerLat = (bounds.north + bounds.south) / 2;
+      const centerLng = (bounds.east + bounds.west) / 2;
+      const res = await fetch("/api/analyze-property", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: centerLat,
+          longitude: centerLng,
+          address: `Area inquiry: ${q} (bounds: ${bounds.south.toFixed(5)},${bounds.west.toFixed(5)} to ${bounds.north.toFixed(5)},${bounds.east.toFixed(5)})`,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.analysis) {
+        setResponse(json.analysis);
+      } else {
+        setError(json.error || "Analysis failed");
+      }
+    } catch {
+      setError("Network error — try again");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePin = () => {
+    const q = question.trim() || "What is this?";
+    const annotation: MapAnnotation = {
+      id: crypto.randomUUID(),
+      bounds,
+      question: q,
+      response,
+      createdAt: new Date().toISOString(),
+    };
+    onPin(annotation);
+  };
+
+  return (
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-[380px] max-w-[90vw] bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+      {!response ? (
+        <>
+          <div className="p-3 border-b border-gray-700/50">
+            <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider mb-2">
+              What do you want to know about this area?
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="What is this?"
+                onKeyDown={(e) => { if (e.key === "Enter" && !loading) handleSubmit(); }}
+                className="flex-1 text-[12px] bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                autoFocus
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="px-4 py-2 bg-cyan-600 text-white text-[12px] font-medium rounded-md hover:bg-cyan-500 disabled:opacity-50 transition-colors"
+              >
+                {loading ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                ) : "Send"}
+              </button>
+            </div>
+            {error && <div className="text-[10px] text-red-400 mt-1.5">{error}</div>}
+          </div>
+          <div className="px-3 py-2 flex justify-end">
+            <button onClick={onDismiss} className="text-[10px] text-gray-500 hover:text-gray-300">Cancel</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="p-3 border-b border-gray-700/50">
+            <div className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider mb-1">AI Response</div>
+            <div className="text-[11px] text-gray-500 mb-2">{question.trim() || "What is this?"}</div>
+          </div>
+          <div className="p-3 max-h-[40vh] overflow-y-auto">
+            <div className="text-[11px] text-gray-300 leading-relaxed prose prose-invert prose-xs max-w-none [&_p]:my-1 [&_li]:my-0.5 [&_ul]:my-1 [&_strong]:text-cyan-300">
+              <ReactMarkdown>{response}</ReactMarkdown>
+            </div>
+          </div>
+          <div className="p-3 border-t border-gray-700/50 flex gap-2 justify-end">
+            <button
+              onClick={onDismiss}
+              className="text-[10px] px-3 py-1.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-md hover:bg-gray-700 font-medium"
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={handlePin}
+              className="text-[10px] px-3 py-1.5 bg-cyan-900/50 text-cyan-400 border border-cyan-800 rounded-md hover:bg-cyan-900/70 font-medium"
+            >
+              Pin to Map
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================
 // MAIN PAGE
 // ============================================
 
@@ -793,6 +1251,10 @@ export default function CoveNeckOps() {
   const [showPolygon, setShowPolygon] = useState(true);
   const [showCameraList, setShowCameraList] = useState(false);
   const [selectedCamId, setSelectedCamId] = useState<string | null>(null);
+  const [drawMode, setDrawMode] = useState<DrawMode>("pan");
+  const [drawnBounds, setDrawnBounds] = useState<{ north: number; south: number; east: number; west: number } | null>(null);
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>(() => loadAnnotations());
+  const [annotationsVisible, setAnnotationsVisible] = useState(true);
   const lastFetch = useRef<number>(0);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -942,6 +1404,34 @@ export default function CoveNeckOps() {
     setSelectedCamId(null);
     setShowCameraList(false);
   };
+
+  // Drawing handlers
+  const handleFinishDraw = useCallback((bounds: { north: number; south: number; east: number; west: number }) => {
+    setDrawnBounds(bounds);
+    setDrawMode("pan");
+  }, []);
+
+  const handlePinAnnotation = useCallback((annotation: MapAnnotation) => {
+    const updated = [...annotations, annotation];
+    setAnnotations(updated);
+    saveAnnotations(updated);
+    setDrawnBounds(null);
+    setAnnotationsVisible(true);
+  }, [annotations]);
+
+  const handleDismissDrawing = useCallback(() => {
+    setDrawnBounds(null);
+  }, []);
+
+  const handleDeleteAnnotation = useCallback((id: string) => {
+    const updated = annotations.filter(a => a.id !== id);
+    setAnnotations(updated);
+    saveAnnotations(updated);
+  }, [annotations]);
+
+  const handleOpenAnnotation = useCallback((id: string) => {
+    // Handled inside DrawingManager
+  }, []);
 
   if (loading) {
     return (
@@ -1200,6 +1690,7 @@ export default function CoveNeckOps() {
       {/* RIGHT: FULL MAP */}
       <div className="flex-1 relative">
         {apiKey ? (
+          <>
           <APIProvider apiKey={apiKey}>
             <Map
               defaultCenter={COVE_NECK_CENTER}
@@ -1223,13 +1714,40 @@ export default function CoveNeckOps() {
                 streetViewOn={streetViewOn}
                 selectedProperty={selectedProperty}
               />
+              <DrawingManager
+                drawMode={drawMode}
+                onFinishDraw={handleFinishDraw}
+                annotations={annotations}
+                annotationsVisible={annotationsVisible}
+                onDeleteAnnotation={handleDeleteAnnotation}
+                onOpenAnnotation={handleOpenAnnotation}
+                activeBounds={drawnBounds}
+              />
             </Map>
           </APIProvider>
+          {/* AI Chat Overlay — positioned on top of the map container */}
+          {drawnBounds && (
+            <AiChatOverlayStandalone
+              bounds={drawnBounds}
+              onPin={handlePinAnnotation}
+              onDismiss={handleDismissDrawing}
+            />
+          )}
+          </>
         ) : (
           <div className="w-full h-full bg-gray-900 flex items-center justify-center text-gray-500 text-sm">
             Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to load map
           </div>
         )}
+
+        {/* Map Toolbar (left side) */}
+        <MapToolbar
+          drawMode={drawMode}
+          onSetMode={setDrawMode}
+          annotationsVisible={annotationsVisible}
+          onToggleAnnotations={() => setAnnotationsVisible(!annotationsVisible)}
+          sidebarOpen={sidebarOpen}
+        />
 
         {/* Map Controls Overlay */}
         <MapControls
