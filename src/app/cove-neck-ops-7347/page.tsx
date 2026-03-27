@@ -785,7 +785,7 @@ export default function CoveNeckOps() {
   const [searchText, setSearchText] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [addingProperty, setAddingProperty] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== "undefined" && window.innerWidth >= 1024);
   const [mapType, setMapType] = useState("satellite");
   const [streetViewOn, setStreetViewOn] = useState(false);
   const [showCameras, setShowCameras] = useState(true);
