@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import crypto from "crypto";
 
 const VALID_USER = process.env.COVE_NECK_USER || "cnwatch";
 const VALID_PASS = process.env.COVE_NECK_PASS || "marsh-heron-47";
 
-// Session token derived from credentials so it rotates if creds change
-const SESSION_TOKEN = crypto
-  .createHash("sha256")
-  .update(`${VALID_USER}:${VALID_PASS}:cove-neck-ops-2026`)
-  .digest("hex")
-  .slice(0, 32);
+// Must match middleware's simpleHash exactly
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  return Math.abs(hash).toString(36) + str.length.toString(36) + "cns";
+}
+
+const SESSION_TOKEN = simpleHash(`${VALID_USER}:${VALID_PASS}:cove-neck-ops-2026`);
 
 export async function POST(request: NextRequest) {
   try {

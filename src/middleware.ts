@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 
 const VALID_USER = process.env.COVE_NECK_USER || "cnwatch";
 const VALID_PASS = process.env.COVE_NECK_PASS || "marsh-heron-47";
 
-const SESSION_TOKEN = crypto
-  .createHash("sha256")
-  .update(`${VALID_USER}:${VALID_PASS}:cove-neck-ops-2026`)
-  .digest("hex")
-  .slice(0, 32);
+// Simple deterministic token from credentials (Edge-compatible, no Node crypto)
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash + char) | 0;
+  }
+  return Math.abs(hash).toString(36) + str.length.toString(36) + "cns";
+}
+
+const SESSION_TOKEN = simpleHash(`${VALID_USER}:${VALID_PASS}:cove-neck-ops-2026`);
 
 // All protected route prefixes
 const PROTECTED_PATHS = [
