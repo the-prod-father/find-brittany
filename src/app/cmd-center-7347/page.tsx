@@ -168,6 +168,7 @@ export default function CommandCenter() {
             >
               Canvass List ({canvassStats.visited}/{canvassStats.total})
             </button>
+            <a href="/cove-neck" className="block text-[11px] text-red-600 hover:underline px-2 font-semibold">Cove Neck Ops</a>
             <a href="/review/bk-ops-7347" className="block text-[11px] text-blue-600 hover:underline px-2">Review Evidence</a>
             <a href="/walkthrough" className="block text-[11px] text-blue-600 hover:underline px-2">Walkthrough</a>
           </div>

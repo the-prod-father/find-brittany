@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         notes: body.notes || null,
         priority: body.priority || "medium",
         has_camera: body.has_camera || null,
+        contacted_by: body.contacted_by || null,
       })
       .select()
       .single();
