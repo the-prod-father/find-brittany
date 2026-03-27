@@ -854,30 +854,25 @@ export default function CoveNeckOps() {
     }
   }, []);
 
-  const seedProperties = useCallback(async () => {
-    if (properties.length > 0) {
-      if (!window.confirm(`There are already ${properties.length} properties. Seed ${SEED_PROPERTIES.length} Cove Neck locations?`)) return;
-    }
-    setSeeding(true);
-    for (const prop of SEED_PROPERTIES) {
-      await fetch("/api/canvass", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(prop),
-      });
-    }
-    await fetchProperties();
-    setSeeding(false);
-  }, [properties.length, fetchProperties]);
-
-  // Auto-seed on first visit if no properties exist
+  // Auto-seed once if DB is empty (guarded by ref to prevent duplicates)
   const autoSeeded = useRef(false);
   useEffect(() => {
     if (!loading && properties.length === 0 && !autoSeeded.current && !seeding) {
       autoSeeded.current = true;
-      seedProperties();
+      setSeeding(true);
+      (async () => {
+        for (const prop of SEED_PROPERTIES) {
+          await fetch("/api/canvass", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(prop),
+          });
+        }
+        await fetchProperties();
+        setSeeding(false);
+      })();
     }
-  }, [loading, properties.length, seeding, seedProperties]);
+  }, [loading, properties.length, seeding, fetchProperties]);
 
   // Filter + search
   const filteredProperties = properties.filter((p) => {
@@ -1129,14 +1124,12 @@ export default function CoveNeckOps() {
         <div className="flex-1 overflow-y-auto">
           {properties.length === 0 && (
             <div className="text-center py-8 px-4">
-              <div className="text-sm text-gray-500 mb-3">No properties loaded.</div>
-              <button
-                onClick={seedProperties}
-                disabled={seeding}
-                className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium"
-              >
-                {seeding ? "Seeding..." : "Seed Cove Neck Properties"}
-              </button>
+              <div className="text-sm text-gray-500">
+                {seeding ? "Loading properties..." : "No properties loaded."}
+              </div>
+              {seeding && (
+                <div className="mt-3 animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400 mx-auto" />
+              )}
             </div>
           )}
 
