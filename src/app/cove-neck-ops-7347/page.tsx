@@ -235,13 +235,13 @@ const SEED_PROPERTIES = [
 
 // Flock Safety ALPR cameras in the Oyster Bay / Cove Neck area (from OpenStreetMap)
 const AREA_CAMERAS = [
-  { lat: 40.870929, lng: -73.504971, label: "Flock ALPR — Cove Neck Rd Entrance", critical: true },
-  { lat: 40.871099, lng: -73.524209, label: "Flock ALPR — Oyster Bay (East Main St area)" },
-  { lat: 40.873878, lng: -73.539399, label: "Flock ALPR — West (South St area)" },
-  { lat: 40.860722, lng: -73.521884, label: "Flock ALPR — South (Shore area)" },
-  { lat: 40.901693, lng: -73.548783, label: "Flock ALPR — North (Bayville area)" },
-  { lat: 40.840209, lng: -73.515200, label: "Flock ALPR — South (Cove Rd area)" },
-  { lat: 40.841756, lng: -73.501530, label: "Flock ALPR — Southeast" },
+  { id: "cam-1", lat: 40.870929, lng: -73.504971, label: "Cove Neck Rd Entrance", detail: "Flock Safety ALPR — fixed, direction 59°. CRITICAL chokepoint: only road into Cove Neck peninsula. All vehicle traffic in/out passes this camera.", type: "ALPR", critical: true },
+  { id: "cam-2", lat: 40.871099, lng: -73.524209, label: "East Main St / Oyster Bay", detail: "Flock Safety ALPR — fixed, direction 80°. Covers traffic on East Main Street near Oyster Bay downtown.", type: "ALPR", critical: false },
+  { id: "cam-3", lat: 40.873878, lng: -73.539399, label: "South St / West Oyster Bay", detail: "Flock Safety ALPR — fixed, direction 297°. Westbound traffic on South Street.", type: "ALPR", critical: false },
+  { id: "cam-4", lat: 40.860722, lng: -73.521884, label: "South Shore area", detail: "Flock Safety ALPR — fixed, direction 94°. Covers south approach to Oyster Bay.", type: "ALPR", critical: false },
+  { id: "cam-5", lat: 40.901693, lng: -73.548783, label: "Bayville / North", detail: "Flock Safety ALPR — fixed. Northern approach via Bayville. Covers traffic from the north.", type: "ALPR", critical: false },
+  { id: "cam-6", lat: 40.840209, lng: -73.515200, label: "Cove Rd / South approach", detail: "Flock Safety ALPR — fixed. Southern approach via Cove Road. Covers traffic from Syosset/Woodbury direction.", type: "ALPR", critical: false },
+  { id: "cam-7", lat: 40.841756, lng: -73.501530, label: "Southeast approach", detail: "Flock Safety ALPR — fixed. Southeast approach. Covers traffic from East Norwich direction.", type: "ALPR", critical: false },
 ];
 
 // ============================================
@@ -542,24 +542,29 @@ function PropertyCard({
   const [checkedBy, setCheckedBy] = useState(data.checked_by);
   const [aiAnalysis, setAiAnalysis] = useState(data.ai_analysis || "");
   const [analyzing, setAnalyzing] = useState(false);
+  const [aiError, setAiError] = useState("");
   const notesTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const runAiAnalysis = async () => {
     if (!property.latitude || !property.longitude) return;
     setAnalyzing(true);
+    setAiError("");
     try {
       const res = await fetch("/api/analyze-property", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ latitude: property.latitude, longitude: property.longitude, address: property.address }),
       });
-      if (res.ok) {
-        const { analysis } = await res.json();
-        setAiAnalysis(analysis);
-        const newData: PropertyData = { ...data, notes: localNotes, checked_by: checkedBy, ai_analysis: analysis };
+      const json = await res.json();
+      if (res.ok && json.analysis) {
+        setAiAnalysis(json.analysis);
+        const newData: PropertyData = { ...data, notes: localNotes, checked_by: checkedBy, ai_analysis: json.analysis };
         onUpdate(property.id, { notes: serializePropertyData(newData) });
+      } else {
+        setAiError(json.error || "Analysis failed");
       }
     } catch (err) {
+      setAiError("Network error — try again");
       console.error("AI analysis failed:", err);
     } finally {
       setAnalyzing(false);
@@ -675,20 +680,25 @@ function PropertyCard({
                 </div>
               </div>
             ) : (
-              <button
-                onClick={runAiAnalysis}
-                disabled={analyzing}
-                className="w-full py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800/50 rounded-md hover:bg-cyan-900/50 text-[11px] font-medium transition-colors disabled:opacity-50"
-              >
-                {analyzing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
-                    Analyzing satellite imagery...
-                  </span>
-                ) : (
-                  "Run AI Recon"
+              <div className="space-y-1.5">
+                <button
+                  onClick={runAiAnalysis}
+                  disabled={analyzing}
+                  className="w-full py-2.5 bg-cyan-900/30 text-cyan-400 border border-cyan-800/50 rounded-md hover:bg-cyan-900/50 text-[12px] font-medium transition-colors disabled:opacity-50"
+                >
+                  {analyzing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+                      Analyzing satellite imagery...
+                    </span>
+                  ) : (
+                    "Run AI Recon"
+                  )}
+                </button>
+                {aiError && (
+                  <div className="text-[10px] text-red-400 text-center">{aiError}</div>
                 )}
-              </button>
+              </div>
             )}
           </div>
 
@@ -780,6 +790,8 @@ export default function CoveNeckOps() {
   const [streetViewOn, setStreetViewOn] = useState(false);
   const [showCameras, setShowCameras] = useState(true);
   const [showPolygon, setShowPolygon] = useState(true);
+  const [showCameraList, setShowCameraList] = useState(false);
+  const [selectedCamId, setSelectedCamId] = useState<string | null>(null);
   const lastFetch = useRef<number>(0);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -896,11 +908,18 @@ export default function CoveNeckOps() {
     alerts: properties.filter((p) => getPropertyStatus(p) === "person_of_interest" || getPropertyStatus(p) === "needs_followup").length,
   };
 
-  // Compute zoom target from selectedMapId
-  const zoomTarget = selectedMapId ? (() => {
-    const p = properties.find(pr => pr.id === selectedMapId);
-    return p?.latitude && p?.longitude ? { lat: p.latitude, lng: p.longitude } : null;
-  })() : null;
+  // Compute zoom target from selectedMapId or selectedCamId
+  const zoomTarget = (() => {
+    if (selectedCamId) {
+      const cam = AREA_CAMERAS.find(c => c.id === selectedCamId);
+      return cam ? { lat: cam.lat, lng: cam.lng } : null;
+    }
+    if (selectedMapId) {
+      const p = properties.find(pr => pr.id === selectedMapId);
+      return p?.latitude && p?.longitude ? { lat: p.latitude, lng: p.longitude } : null;
+    }
+    return null;
+  })();
 
   const selectedProperty = selectedMapId ? properties.find(p => p.id === selectedMapId) || null : null;
 
@@ -1040,10 +1059,73 @@ export default function CoveNeckOps() {
                 </button>
               );
             })}
+            <button
+              onClick={() => setShowCameraList(!showCameraList)}
+              className={`text-[10px] px-2 py-1 rounded-md whitespace-nowrap font-medium transition-colors ${
+                showCameraList
+                  ? "bg-yellow-400 text-black"
+                  : "bg-gray-800 text-yellow-400 hover:bg-gray-700"
+              }`}
+            >
+              ALPR Cams <span className="opacity-60">{AREA_CAMERAS.length}</span>
+            </button>
           </div>
         </div>
 
+        {/* Camera list view */}
+        {showCameraList && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-3 py-2 border-b border-gray-700/50">
+              <div className="text-[11px] font-semibold text-yellow-400 uppercase tracking-wider">ALPR Camera Locations</div>
+              <div className="text-[10px] text-gray-500 mt-0.5">Flock Safety license plate readers. Contact NCPD for footage access.</div>
+            </div>
+            {AREA_CAMERAS.map((cam) => (
+              <button
+                key={cam.id}
+                onClick={() => {
+                  setSelectedCamId(cam.id);
+                  setSelectedMapId(null);
+                  setExpandedId(null);
+                }}
+                className={`w-full text-left px-3 py-3 border-b border-gray-700/30 hover:bg-gray-800/60 transition-colors ${selectedCamId === cam.id ? "bg-gray-800/80" : ""}`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${cam.critical ? "bg-yellow-400 text-black" : "bg-blue-500/80 text-white"}`}>
+                    CAM
+                  </span>
+                  <span className="text-[13px] text-gray-200 font-medium">{cam.label}</span>
+                </div>
+                <div className="text-[11px] text-gray-400 leading-relaxed">{cam.detail}</div>
+                <div className="flex gap-2 mt-2">
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCamId(cam.id);
+                      setStreetViewOn(true);
+                    }}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                  >
+                    Street View
+                  </span>
+                  <span className="text-[10px] text-gray-600">|</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCamId(cam.id);
+                      setStreetViewOn(false);
+                    }}
+                    className="text-[10px] text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                  >
+                    Satellite
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Property list (scrollable) */}
+        {!showCameraList && (
         <div className="flex-1 overflow-y-auto">
           {properties.length === 0 && (
             <div className="text-center py-8 px-4">
@@ -1075,6 +1157,7 @@ export default function CoveNeckOps() {
             </div>
           )}
         </div>
+        )}
 
         {/* Sidebar Footer */}
         <div className="shrink-0 p-3 border-t border-gray-800 flex items-center gap-2">

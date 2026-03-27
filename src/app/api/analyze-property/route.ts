@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const genAI = new GoogleGenerativeAI((process.env.GEMINI_API_KEY || "").trim());
+
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,56 +14,56 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch satellite image from ArcGIS World Imagery (free, no API key needed)
-    const pad = 0.0012;
-    const bbox = `${longitude - pad},${latitude - pad * 0.8},${longitude + pad},${latitude + pad * 0.8}`;
-    const imageUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&size=1024,768&format=jpg&f=image`;
+    const pad = 0.001;
+    const bbox = `${longitude - pad},${latitude - pad * 0.75},${longitude + pad},${latitude + pad * 0.75}`;
+    const imageUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&size=640,480&format=jpg&f=image`;
 
-    const imageRes = await fetch(imageUrl);
-    if (!imageRes.ok) {
-      return NextResponse.json({ error: "Failed to fetch satellite image" }, { status: 502 });
+    let base64Image: string;
+    try {
+      const imageRes = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) });
+      if (!imageRes.ok) {
+        console.error("ArcGIS fetch failed:", imageRes.status, imageRes.statusText);
+        return NextResponse.json({ error: "Failed to fetch satellite image" }, { status: 502 });
+      }
+      const imageBuffer = await imageRes.arrayBuffer();
+      base64Image = Buffer.from(imageBuffer).toString("base64");
+      console.log("Satellite image fetched:", base64Image.length, "base64 chars");
+    } catch (imgErr) {
+      console.error("Image fetch error:", imgErr);
+      return NextResponse.json({ error: "Satellite image fetch timed out" }, { status: 504 });
     }
 
-    const imageBuffer = await imageRes.arrayBuffer();
-    const base64Image = Buffer.from(imageBuffer).toString("base64");
-
     // Send to Gemini for analysis
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const prompt = `You are assisting a MISSING PERSONS search operation in Cove Neck, Oyster Bay, NY. A woman (Brittany, 32) has been missing for 7 days in late March. She was last seen in a panicked/psychotic state and may be hiding in vacant properties.
+      const prompt = `You are assisting a MISSING PERSONS search in Cove Neck, Oyster Bay, NY. A woman (32) has been missing 7 days in late March, last seen panicked/psychotic, may be hiding in vacant properties.
 
-Analyze this satellite/aerial image of the property at: ${address || `${latitude}, ${longitude}`}
+Analyze this satellite image of: ${address || `${latitude}, ${longitude}`}
 
-Provide a concise FIELD BRIEFING for the search team. Include:
+Give a concise FIELD BRIEFING:
+- STRUCTURES: Every building/structure visible and their positions
+- HIDING SPOTS: Outbuildings, dense trees, covered areas, boats
+- ACCESS: Driveways, paths, gates, waterfront
+- VACANCY SIGNS: No cars, covered pool, yard state
+- CAMERAS: Where to look for Ring/Nest/security cameras
+- DON'T MISS: Top priority items for the search team
 
-1. **Structures visible**: List every structure you can identify (main house, guest house, pool house, shed, garage, boathouse, etc.). Describe their relative positions (e.g., "small structure NW corner behind main house").
+One-line summary first, then short bullets. Under 150 words. Be direct.`;
 
-2. **Potential hiding spots**: Dense tree cover, structures with easy access, crawl spaces, covered porches, boats under tarps, unlocked-looking outbuildings.
+      const result = await model.generateContent([
+        prompt,
+        { inlineData: { mimeType: "image/jpeg", data: base64Image } },
+      ]);
 
-3. **Access points**: Driveways, paths, gates, waterfront access.
-
-4. **Vacancy indicators**: No vehicles, pool covered, yard condition.
-
-5. **Camera/security likely positions**: Front door, driveway entrance, garage — where to look for Ring/Nest cameras.
-
-6. **Search priority notes**: What the team should NOT miss when they visit this property.
-
-Format: Start with a ONE-LINE summary. Then use short bullet points. Be direct and actionable — this is for people in the field with phones. Keep it under 200 words.`;
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image,
-        },
-      },
-    ]);
-
-    const analysis = result.response.text();
-
-    return NextResponse.json({ analysis, success: true });
+      const analysis = result.response.text();
+      return NextResponse.json({ analysis, success: true });
+    } catch (aiErr) {
+      console.error("Gemini error:", aiErr);
+      return NextResponse.json({ error: "AI analysis failed: " + (aiErr instanceof Error ? aiErr.message : "unknown") }, { status: 500 });
+    }
   } catch (err) {
     console.error("Property analysis error:", err);
-    return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+    return NextResponse.json({ error: "Request failed: " + (err instanceof Error ? err.message : "unknown") }, { status: 500 });
   }
 }
