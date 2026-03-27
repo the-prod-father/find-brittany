@@ -809,54 +809,75 @@ function MapToolbar({
   onSetMode,
   annotationsVisible,
   onToggleAnnotations,
-  sidebarOpen,
+  annotationCount,
 }: {
   drawMode: DrawMode;
   onSetMode: (m: DrawMode) => void;
   annotationsVisible: boolean;
   onToggleAnnotations: () => void;
-  sidebarOpen: boolean;
+  annotationCount: number;
 }) {
-  const btnBase = "w-9 h-9 flex items-center justify-center rounded-lg transition-all";
+  const btnBase = "w-10 h-10 flex items-center justify-center rounded-xl transition-all relative";
   const btnActive = "bg-cyan-500 text-white shadow-lg";
-  const btnInactive = "bg-black/60 text-gray-300 hover:bg-black/80 hover:text-white";
+  const btnInactive = "text-gray-400 hover:bg-white/10 hover:text-white";
 
   return (
-    <div className={`absolute top-3 z-10 flex flex-col gap-1.5 ${sidebarOpen ? "left-3 lg:left-[396px]" : "left-3"} transition-all duration-200`}>
-      {/* Pan */}
-      <button
-        onClick={() => onSetMode("pan")}
-        className={`${btnBase} ${drawMode === "pan" ? btnActive : btnInactive}`}
-        title="Pan (default)"
-      >
-        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v6M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8" />
-          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
-        </svg>
-      </button>
-      {/* Draw */}
-      <button
-        onClick={() => onSetMode(drawMode === "draw" ? "pan" : "draw")}
-        className={`${btnBase} ${drawMode === "draw" ? btnActive : btnInactive}`}
-        title="Draw rectangle — two clicks to define area"
-      >
-        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="4 2" />
-          <path d="M12 8v8M8 12h8" />
-        </svg>
-      </button>
-      {/* Annotations toggle */}
-      <button
-        onClick={onToggleAnnotations}
-        className={`${btnBase} ${annotationsVisible ? btnActive : btnInactive}`}
-        title={`Annotations ${annotationsVisible ? "ON" : "OFF"}`}
-      >
-        <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="12 2 2 7 12 12 22 7 12 2" />
-          <polyline points="2 17 12 22 22 17" />
-          <polyline points="2 12 12 17 22 12" />
-        </svg>
-      </button>
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+      <div className="flex items-center gap-1 bg-gray-900/90 backdrop-blur-md border border-gray-700/50 rounded-2xl px-2 py-1.5 shadow-2xl">
+        {/* Pan */}
+        <button
+          onClick={() => onSetMode("pan")}
+          className={`${btnBase} ${drawMode === "pan" ? btnActive : btnInactive}`}
+          title="Pan"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+          </svg>
+        </button>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-gray-700 mx-0.5" />
+
+        {/* Draw Rectangle */}
+        <button
+          onClick={() => onSetMode(drawMode === "draw" ? "pan" : "draw")}
+          className={`${btnBase} ${drawMode === "draw" ? btnActive : btnInactive}`}
+          title="Draw — click two points to select an area"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="5 3" />
+          </svg>
+        </button>
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-gray-700 mx-0.5" />
+
+        {/* Annotations toggle */}
+        <button
+          onClick={onToggleAnnotations}
+          className={`${btnBase} ${annotationsVisible ? btnActive : btnInactive}`}
+          title={`Pins ${annotationsVisible ? "ON" : "OFF"} (${annotationCount})`}
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          </svg>
+          {annotationCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-cyan-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              {annotationCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Mode label */}
+      {drawMode === "draw" && (
+        <div className="text-center mt-2">
+          <span className="text-[11px] bg-cyan-500/90 text-white px-3 py-1 rounded-full font-medium shadow-lg">
+            Click two points to select an area
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1740,13 +1761,13 @@ export default function CoveNeckOps() {
           </div>
         )}
 
-        {/* Map Toolbar (left side) */}
+        {/* Map Toolbar (Figma-style, bottom center) */}
         <MapToolbar
           drawMode={drawMode}
           onSetMode={setDrawMode}
           annotationsVisible={annotationsVisible}
           onToggleAnnotations={() => setAnnotationsVisible(!annotationsVisible)}
-          sidebarOpen={sidebarOpen}
+          annotationCount={annotations.length}
         />
 
         {/* Map Controls Overlay */}
