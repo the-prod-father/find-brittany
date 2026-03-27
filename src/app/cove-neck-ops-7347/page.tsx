@@ -104,6 +104,7 @@ const COVE_NECK_CENTER = { lat: 40.886, lng: -73.499 };
 
 interface MapAnnotation {
   id: string;
+  name: string;
   bounds: { north: number; south: number; east: number; west: number };
   question: string;
   response: string;
@@ -1076,8 +1077,8 @@ function DrawingManager({
             position={{ lat: centerLat, lng: centerLng }}
             onClick={() => setViewingAnnotation(ann.id)}
           >
-            <div className="px-2 py-1 bg-black/80 backdrop-blur-sm text-cyan-300 text-[10px] font-medium rounded shadow-lg cursor-pointer hover:bg-black/90 max-w-[140px] truncate border border-cyan-800/50">
-              {ann.question.length > 30 ? ann.question.slice(0, 30) + "..." : ann.question}
+            <div className="px-2 py-1 bg-black/80 backdrop-blur-sm text-cyan-300 text-[10px] font-medium rounded shadow-lg cursor-pointer hover:bg-black/90 max-w-[160px] truncate border border-cyan-800/50">
+              {ann.name || ann.question.slice(0, 30)}
             </div>
           </AdvancedMarker>
         );
@@ -1099,11 +1100,11 @@ function DrawingManager({
       {viewedAnnotation && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-[340px] max-w-[90vw] bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
           <div className="p-3 border-b border-gray-700/50 flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">Annotation</span>
+            <span className="text-[13px] font-semibold text-cyan-400">{viewedAnnotation.name || "Location"}</span>
             <button onClick={() => setViewingAnnotation(null)} className="text-gray-500 hover:text-gray-300 text-lg leading-none">&times;</button>
           </div>
           <div className="p-3 space-y-2 max-h-[50vh] overflow-y-auto">
-            <div className="text-[12px] text-gray-300 font-medium">{viewedAnnotation.question}</div>
+            <div className="text-[10px] text-gray-500">Q: {viewedAnnotation.question}</div>
             <div className="text-[11px] text-gray-400 leading-relaxed prose prose-invert prose-xs max-w-none [&_p]:my-1 [&_li]:my-0.5 [&_ul]:my-1 [&_strong]:text-cyan-300">
               <ReactMarkdown>{viewedAnnotation.response}</ReactMarkdown>
             </div>
@@ -1143,6 +1144,8 @@ function AiChatOverlayStandalone({
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState("");
   const [error, setError] = useState("");
+  const [pinName, setPinName] = useState("");
+  const [showNameInput, setShowNameInput] = useState(false);
 
   const handleSubmit = async () => {
     const q = question.trim() || "What is this?";
@@ -1175,8 +1178,10 @@ function AiChatOverlayStandalone({
 
   const handlePin = () => {
     const q = question.trim() || "What is this?";
+    const name = pinName.trim() || q.slice(0, 40);
     const annotation: MapAnnotation = {
       id: crypto.randomUUID(),
+      name,
       bounds,
       question: q,
       response,
@@ -1230,7 +1235,26 @@ function AiChatOverlayStandalone({
               <ReactMarkdown>{response}</ReactMarkdown>
             </div>
           </div>
-          <div className="p-3 border-t border-gray-700/50 flex gap-2 justify-end">
+          <div className="p-3 border-t border-gray-700/50">
+            {showNameInput ? (
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-cyan-400">Name this location:</div>
+                <input
+                  type="text"
+                  value={pinName}
+                  onChange={(e) => setPinName(e.target.value)}
+                  placeholder='e.g. "Old barn behind Sagamore Hill"'
+                  onKeyDown={(e) => { if (e.key === "Enter") handlePin(); }}
+                  className="w-full text-[12px] bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setShowNameInput(false)} className="text-[10px] px-3 py-1.5 text-gray-500 hover:text-gray-300">Back</button>
+                  <button onClick={handlePin} className="text-[10px] px-3 py-1.5 bg-cyan-600 text-white rounded-md hover:bg-cyan-500 font-medium">Save Location</button>
+                </div>
+              </div>
+            ) : (
+            <div className="flex gap-2 justify-end">
             <button
               onClick={onDismiss}
               className="text-[10px] px-3 py-1.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-md hover:bg-gray-700 font-medium"
@@ -1238,11 +1262,13 @@ function AiChatOverlayStandalone({
               Dismiss
             </button>
             <button
-              onClick={handlePin}
+              onClick={() => setShowNameInput(true)}
               className="text-[10px] px-3 py-1.5 bg-cyan-900/50 text-cyan-400 border border-cyan-800 rounded-md hover:bg-cyan-900/70 font-medium"
             >
-              Pin to Map
+              Save Location
             </button>
+          </div>
+            )}
           </div>
         </>
       )}
