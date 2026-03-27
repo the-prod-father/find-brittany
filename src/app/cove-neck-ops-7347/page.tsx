@@ -35,6 +35,7 @@ interface PropertyData {
   property_type: string;
   structures: string[];
   checked_by: string;
+  ai_analysis?: string;
 }
 
 interface CanvassProperty {
@@ -248,7 +249,7 @@ const AREA_CAMERAS = [
 // ============================================
 
 function parsePropertyData(notes: string | null): PropertyData {
-  if (!notes) return { checklist: {}, notes: "", property_type: "residential", structures: [], checked_by: "" };
+  if (!notes) return { checklist: {}, notes: "", property_type: "residential", structures: [], checked_by: "", ai_analysis: "" };
   try {
     const parsed = JSON.parse(notes);
     return {
@@ -257,9 +258,10 @@ function parsePropertyData(notes: string | null): PropertyData {
       property_type: parsed.property_type || "residential",
       structures: parsed.structures || [],
       checked_by: parsed.checked_by || "",
+      ai_analysis: parsed.ai_analysis || "",
     };
   } catch {
-    return { checklist: {}, notes: notes, property_type: "residential", structures: [], checked_by: "" };
+    return { checklist: {}, notes: notes, property_type: "residential", structures: [], checked_by: "", ai_analysis: "" };
   }
 }
 
@@ -538,7 +540,31 @@ function PropertyCard({
 
   const [localNotes, setLocalNotes] = useState(data.notes);
   const [checkedBy, setCheckedBy] = useState(data.checked_by);
+  const [aiAnalysis, setAiAnalysis] = useState(data.ai_analysis || "");
+  const [analyzing, setAnalyzing] = useState(false);
   const notesTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const runAiAnalysis = async () => {
+    if (!property.latitude || !property.longitude) return;
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/analyze-property", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: property.latitude, longitude: property.longitude, address: property.address }),
+      });
+      if (res.ok) {
+        const { analysis } = await res.json();
+        setAiAnalysis(analysis);
+        const newData: PropertyData = { ...data, notes: localNotes, checked_by: checkedBy, ai_analysis: analysis };
+        onUpdate(property.id, { notes: serializePropertyData(newData) });
+      }
+    } catch (err) {
+      console.error("AI analysis failed:", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const updateChecklist = (key: keyof PropertyChecklist, value: boolean) => {
     const newData: PropertyData = {
@@ -629,6 +655,42 @@ function PropertyCard({
               {property.contacted_at ? ` at ${new Date(property.contacted_at).toLocaleTimeString()}` : ""}
             </div>
           )}
+
+          {/* AI Analysis */}
+          <div>
+            {aiAnalysis ? (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold text-cyan-400 uppercase tracking-wider">AI Recon</span>
+                  <button
+                    onClick={runAiAnalysis}
+                    disabled={analyzing}
+                    className="text-[9px] text-gray-500 hover:text-cyan-400 transition-colors"
+                  >
+                    {analyzing ? "Analyzing..." : "Re-run"}
+                  </button>
+                </div>
+                <div className="text-[11px] text-gray-300 leading-relaxed bg-gray-900/60 border border-gray-700/50 rounded-md p-2.5 whitespace-pre-wrap">
+                  {aiAnalysis}
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={runAiAnalysis}
+                disabled={analyzing}
+                className="w-full py-2 bg-cyan-900/30 text-cyan-400 border border-cyan-800/50 rounded-md hover:bg-cyan-900/50 text-[11px] font-medium transition-colors disabled:opacity-50"
+              >
+                {analyzing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+                    Analyzing satellite imagery...
+                  </span>
+                ) : (
+                  "Run AI Recon"
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Search Checklist */}
           <div>
