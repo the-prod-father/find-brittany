@@ -8,9 +8,11 @@
 
 | Stream | Status | Last Touched | Notes |
 |--------|--------|-------------|-------|
-| Cove Neck Operations | Active | 2026-03-27 | Full-viewport ops tool live. 121 properties seeded. Auth-gated. Chief Lack coordination pending. |
+| Cove Neck Operations | Active | 2026-03-27 | Full-viewport ops tool with AI Recon, drawing tool, 128 properties, 7 ALPR cameras, Supabase annotations |
 | Auth system | Done | 2026-03-27 | Middleware gates all ops pages. Login at /cove-neck. Credentials: cnwatch / marsh-heron-47 |
-| ALPR camera mapping | Done | 2026-03-27 | 7 Flock Safety cameras on map. Chokepoint camera at CN Rd entrance. |
+| ALPR camera mapping | Done | 2026-03-27 | 7 Flock Safety cameras on map + sidebar list with details |
+| Map drawing/annotations | Done | 2026-03-27 | Two-click rectangle, AI Q&A, named pins stored in Supabase |
+| AI Recon | Done | 2026-03-27 | ArcGIS satellite → Gemini 2.5 Flash, detective-style briefings per property |
 | Admin bar | Done | 2026-03-27 | Floating nav on all pages when authenticated |
 | Large file upload | Blocked | 2026-03-25 | TUS protocol works but Supabase project limit rejecting 192MB files |
 | Public evidence collection | Active | 2026-03-25 | Facebook post live. 5 evidence items. Waiting for community uploads. |
@@ -22,33 +24,38 @@
 |------|-------|---------|
 | Build | Clean | Next.js, deploys on push |
 | Deploy | Live | find-brittany.vercel.app |
-| Database | Healthy | Supabase Pro, 10 tables, 121 canvass properties |
+| Database | Healthy | Supabase Pro, 11 tables (added map_annotations), 128 canvass properties |
 | Auth | Live | Middleware + /cove-neck login. All ops pages protected. |
-| Cove Neck Ops | Live | Full-viewport map + sidebar, 121 addresses, 7 cameras |
+| Cove Neck Ops | Live | Full-viewport map + sidebar, 128 addresses, 7 cameras, drawing tool, AI Recon |
+| Gemini | Working | gemini-2.5-flash (2.0 deprecated) |
 | Evidence | 5 items | All from Gavin, 0 public submissions yet |
 | Cron | Running | Hourly news check |
 
 ## Recent Commits
 
-- `9bd0bd8` Cove Neck Ops full redesign — full-viewport map with sidebar
-- `7d11459` Auto-seed properties + 7 ALPR camera markers on map
-- `b726e7f` Admin bar + 121 real Cove Neck addresses + map zoom on click
-- `4fa7052` Fix auth — trim env var whitespace
-- `82ba414` Fix middleware — use Edge-compatible hash instead of Node crypto
-- `9b65f1a` Cove Neck ops center — auth-gated property search for law enforcement
+- `499baa8` Annotations → Supabase — persistent, shared across users
+- `f3ddf2b` Named locations — name your pins, shown on map labels
+- `ec611df` Figma-style floating toolbar — bottom center of map
+- `8323eb5` Map drawing tool — circle areas, ask AI, pin annotations
+- `3dacdd7` AI Recon — detective-style prompt + proper text rendering
+- `059501c` Fix duplicate seeding — one-time seed with race condition guard
+- `beb5dbc` Fix Gemini — upgrade to gemini-2.5-flash (2.0 deprecated)
+- `3de3a98` AI Recon — Gemini satellite analysis per property
+- `1efedfc` Change boundary to cyan — colorblind-safe (red-green)
 
 ## Known Issues
 
 - Supabase project-level upload limit blocking files >50MB
-- Google Static Maps API not enabled (satellite thumbnails won't load — mitigated by using interactive map)
+- Google Static Maps API not enabled (mitigated — using interactive map + ArcGIS for AI)
 - Google Places Autocomplete deprecation warning (still works)
+- Existing localStorage annotations won't migrate to Supabase (need to re-pin)
 
 ## Next Priorities
 
-1. Verify Cove Neck Ops full-viewport redesign in production
-2. Share credentials with Chief Lack and begin field canvass
-3. Investigate Flock Safety ALPR data access through law enforcement
-4. AI satellite analysis per property (Gemini on satellite imagery)
+1. Share credentials with Chief Lack and demo the ops tool
+2. Test drawing tool + AI analysis on iPad with Apple Pencil
+3. Build annotation search/filter in sidebar
+4. Investigate Flock Safety ALPR data access through law enforcement
 5. Fix Supabase upload size limit
 6. Upload Gailview.MP4 evidence
 7. Monitor public evidence submissions

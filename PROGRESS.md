@@ -4,6 +4,54 @@ Session history for this project. Most recent session first.
 
 ---
 
+## Session: 2026-03-27 — Cove Neck Ops Enhancements
+**Duration:** ~2.5h | **Commits:** 12 | **Branch:** main
+
+### What Was Built
+- AI Recon: detective-style satellite analysis per property (ArcGIS → Gemini 2.5 Flash)
+- Map drawing tool: two-click rectangles, AI Q&A on any area, named persistent pins
+- Figma-style floating toolbar (Pan / Draw / Pins) at bottom center of map
+- ALPR camera list in sidebar with details and Street View links
+- Supabase `map_annotations` table for shared annotation persistence
+- Colorblind-safe boundary (cyan), mobile optimization, ReactMarkdown rendering
+
+### Key Fixes
+- Gemini 2.0-flash deprecated → upgraded to 2.5-flash
+- Duplicate seeding race condition (384→128 records cleaned)
+- Property selection from camera filter now works properly
+
+### Decisions
+- Satellite (top-down) over 3D for AI analysis — clearest property layout
+- Detective-style plain language over structured markdown briefings
+- ArcGIS World Imagery for satellite (free, no API key)
+- Named annotations in Supabase over localStorage (shared across users)
+
+### Key Files Changed
+- `src/app/cove-neck-ops-7347/page.tsx` — Drawing tool, toolbar, camera list, AI Recon (+820 lines)
+- `src/app/api/analyze-property/route.ts` — NEW: satellite → Gemini analysis
+- `src/app/api/annotations/route.ts` — NEW: annotation CRUD
+- `src/app/api/analyze-video/route.ts` — Gemini model upgrade
+
+### Commits
+- `499baa8` Annotations → Supabase
+- `f3ddf2b` Named locations
+- `ec611df` Figma-style floating toolbar
+- `8323eb5` Map drawing tool
+- `3dacdd7` Detective-style prompt + markdown rendering
+- `059501c` Fix duplicate seeding
+- `beb5dbc` Fix Gemini 2.5 upgrade
+- `3de3a98` AI Recon feature
+- `1efedfc` Colorblind-safe boundary
+
+### Next Priorities
+1. Demo tool to Chief Lack
+2. Test iPad drawing with Apple Pencil
+3. Annotation search/filter in sidebar
+4. Flock ALPR data access
+5. Fix Supabase upload limit
+
+---
+
 ## Session: 2026-03-26 — Cove Neck Operations Center
 **Duration:** ~3h | **Commits:** 6 | **Branch:** main
 
